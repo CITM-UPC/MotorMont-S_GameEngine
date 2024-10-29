@@ -1,4 +1,3 @@
-// Camera.h
 #pragma once
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -10,13 +9,14 @@ public:
     float aspect = 16.0f / 9.0f;
     float zNear = 0.1f;
     float zFar = 100.0f;
+    float fov = 45.0f; // Campo de visión en grados
     glm::mat4 view = glm::mat4(1.0f);
     glm::mat4 projection = glm::mat4(1.0f);
     bool isOrthographic = true;
 
     Camera();
     void updateViewMatrix(const glm::vec3& target);
-    void setProjection(float near, float far); // Cambiado a near y far
-    void applyProjection() const; // Método ajustado para aplicar en OpenGL directamente
+    void setProjection(float fov, float near, float far); // Cambiado a incluir `fov`
+    void applyProjection() const;
     void toggleProjection();
 };

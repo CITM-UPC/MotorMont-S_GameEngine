@@ -18,6 +18,28 @@ static const auto FRAME_DT = 1.0s / FPS;
 
 static Camera camera;
 
+// Función para dibujar la grilla en el plano XZ
+void drawGrid(float size, int divisions) {
+    glLineWidth(1.0f);
+    glBegin(GL_LINES);
+    glColor3f(0.8f, 0.8f, 0.8f); // Color de las líneas de la grilla
+
+    for (int i = -divisions; i <= divisions; ++i) {
+        float pos = i * size / divisions;
+
+        // Líneas en el eje X (paralelas al eje Z)
+        glVertex3f(pos, 0.0f, -size);
+        glVertex3f(pos, 0.0f, size);
+
+        // Líneas en el eje Z (paralelas al eje X)
+        glVertex3f(-size, 0.0f, pos);
+        glVertex3f(size, 0.0f, pos);
+    }
+
+    glEnd();
+    glLineWidth(1.0f);
+}
+
 static void init_openGL() {
     if (glewInit() != GLEW_OK) {
         cerr << "Failed to initialize GLEW." << endl;
@@ -36,21 +58,22 @@ int main(int argc, char** argv) {
         MyWindow window("OpenGL Model Rendering", WINDOW_SIZE.x, WINDOW_SIZE.y);
         init_openGL();
 
-        // Configurar cámara con zNear y zFar adecuados
-        camera.setProjection(0.1f, 1000.0f);
-        camera.updateViewMatrix(glm::vec3(0.0f, 0.0f, 0.0f));  // Apunta al origen
+        camera.setProjection(45.0f, 0.1f, 1000.0f); // Ajusta fov, zNear y zFar
+        camera.updateViewMatrix(glm::vec3(0.0f, 1.0f, 0.0f));
 
-        // Cargar y dibujar el modelo
         Mesh myMesh;
         if (!myMesh.loadModel("Assets/BakerHouse/BakerHouse.fbx")) {
-            cerr << "Failed to load model: Assets/BakerHouse.fbx" << endl;
+            cerr << "Failed to load model: Assets/BakerHouse/BakerHouse.fbx" << endl;
             return -1;
         }
 
         while (window.processEvents() && window.isOpen()) {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            // Dibuja la malla cargada
+            // Dibuja la grilla en el plano XZ
+            drawGrid(20.0f, 20);
+
+            // Dibuja el modelo
             myMesh.draw();
 
             window.swapBuffers();

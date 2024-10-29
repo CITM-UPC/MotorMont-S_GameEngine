@@ -1,38 +1,37 @@
-// Camera.cpp
 #include "Camera.h"
-#include <GL/glew.h>  // Para inicializar y manejar extensiones modernas de OpenGL
-#include <GL/gl.h>
-
+#include <GL/glew.h>  
+#include <GL/gl.h>    
 
 Camera::Camera() : position(0.0f, 0.0f, 5.0f) {
     updateViewMatrix(glm::vec3(0.0f, 0.0f, 0.0f));
-    setProjection(zNear, zFar);
+    setProjection(fov, zNear, zFar);
 }
 
 void Camera::updateViewMatrix(const glm::vec3& target) {
     view = glm::lookAt(position, target, upDir);
-    glMatrixMode(GL_MODELVIEW);  // Configuración de vista
+    glMatrixMode(GL_MODELVIEW);
     glLoadMatrixf(&view[0][0]);
 }
 
-void Camera::setProjection(float near, float far) {
+void Camera::setProjection(float fov, float near, float far) {
     zNear = near;
     zFar = far;
+    this->fov = fov;
+
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
 
     if (isOrthographic) {
-        float size = 10.0f; // Ajuste de tamaño de ortografía según aspecto
+        float size = 10.0f;
         glOrtho(-size * aspect, size * aspect, -size, size, near, far);
     }
     else {
-        float fov = 45.0f; // Campo de visión para perspectiva
-        float top = near * tan(glm::radians(fov) / 2);
+        float top = zNear * tan(glm::radians(fov) / 2.0f);
         float right = top * aspect;
-        glFrustum(-right, right, -top, top, near, far);
+        glFrustum(-right, right, -top, top, zNear, zFar);
     }
 
-    glMatrixMode(GL_MODELVIEW); // Volver a modo de modelo/vista
+    glMatrixMode(GL_MODELVIEW);
 }
 
 void Camera::applyProjection() const {
@@ -43,5 +42,5 @@ void Camera::applyProjection() const {
 
 void Camera::toggleProjection() {
     isOrthographic = !isOrthographic;
-    setProjection(zNear, zFar);
+    setProjection(fov, zNear, zFar);
 }

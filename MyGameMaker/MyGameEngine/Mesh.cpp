@@ -48,12 +48,6 @@ void Mesh::loadFromModelData(const ModelData& modelData) {
         glEnableVertexAttribArray(2);
     }
 
-    if (!modelData.colors.empty()) {
-        _colorBuffer.loadElements(modelData.colors.size(), modelData.colors.data());
-        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-        glEnableVertexAttribArray(3);
-    }
-
     _indices = modelData.indices;
     _indexBuffer.loadIndices(_indices.size(), _indices.data());
 
