@@ -12,14 +12,21 @@ void Camera::updateViewMatrix(const glm::vec3& target) {
 
 void Camera::setProjection(float size, float near, float far) {
     if (isOrthographic) {
-        float orthoSize = size;
-        projection = glm::ortho(-orthoSize * aspect, orthoSize * aspect, -orthoSize, orthoSize, near, far);
+        projection = glm::ortho(-size * aspect, size * aspect, -size, size, near, far);
     }
     else {
         projection = glm::perspective(glm::radians(size), aspect, near, far);
     }
 }
 
+void Camera::applyProjection(GLuint shaderProgram) const {
+    GLuint viewLoc = glGetUniformLocation(shaderProgram, "view");
+    GLuint projLoc = glGetUniformLocation(shaderProgram, "projection");
+    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]);
+    glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection[0][0]);
+}
+
 void Camera::toggleProjection() {
     isOrthographic = !isOrthographic;
+    setProjection(10.0f, 0.1f, 100.0f);
 }

@@ -8,6 +8,7 @@
 #include "MyGameEngine/Mesh.h"
 #include "MyGameEngine/LoadModel.h"
 #include "MyGameEngine/Texture.h"
+#include "MyGameEngine/Camera.h"
 
 using namespace std;
 
@@ -18,13 +19,18 @@ static const ivec2 WINDOW_SIZE(1280, 720);
 static const unsigned int FPS = 60;
 static const auto FRAME_DT = 1.0s / FPS;
 
+static Camera camera;
+
 // Shader sources
 const char* vertexShaderSource = R"(
 #version 330 core
 layout(location = 0) in vec3 position;
 
+uniform mat4 view;
+uniform mat4 projection;
+
 void main() {
-    gl_Position = vec4(position, 1.0);
+    gl_Position = projection * view * vec4(position, 1.0);
 }
 )";
 
@@ -51,20 +57,26 @@ static void init_openGL() {
 }
 
 void drawGrid(float size, int divisions) {
+    glLineWidth(2.0f);
     glBegin(GL_LINES);
 
-    // Draw the grid lines along the X-axis
     for (int i = -divisions; i <= divisions; ++i) {
         float pos = static_cast<float>(i) * size / divisions;
-        glColor3f(0.8f, 0.8f, 0.8f); // Light gray color
-        glVertex3f(pos, 0.0f, -size); // Start
-        glVertex3f(pos, 0.0f, size);  // End
-        glVertex3f(-size, 0.0f, pos); // Start
-        glVertex3f(size, 0.0f, pos);  // End
+        glColor3f(0.8f, 0.8f, 0.8f);
+
+        // Draw vertical lines along the Z-axis
+        glVertex3f(pos, 0.0f, -size);
+        glVertex3f(pos, 0.0f, size);
+
+        // Draw horizontal lines along the X-axis
+        glVertex3f(-size, 0.0f, pos);
+        glVertex3f(size, 0.0f, pos);
     }
 
     glEnd();
+    glLineWidth(1.0f);
 }
+
 
 GLuint createShaderProgram() {
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -108,29 +120,31 @@ int main(int argc, char** argv) {
         MyWindow window("OpenGL Model Rendering", WINDOW_SIZE.x, WINDOW_SIZE.y);
         init_openGL();
 
-        // Load and compile shaders here
         GLuint shaderProgram = createShaderProgram();
 
-        // Create the mesh and load the model
+        camera.setProjection(20.0f, 0.1f, 100.0f);
+
+
         Mesh myMesh;
         if (!myMesh.loadModel("Assets/BakerHouse/BakerHouse.fbx")) {
             cerr << "Failed to load model: Assets/BakerHouse.fbx" << endl;
             return -1;
         }
 
-        // Main render loop
         while (window.processEvents() && window.isOpen()) {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            // Draw the grid
-            drawGrid(10.0f, 10); // 10 units size, with 10 divisions
+            glUseProgram(shaderProgram);
+            camera.applyProjection(shaderProgram);
 
-            glUseProgram(shaderProgram); // Use the shader program before drawing
+            drawGrid(20.0f, 20);
+
             myMesh.draw();
 
             window.swapBuffers();
-            this_thread::sleep_for(FRAME_DT); // Simple frame rate control
+            std::this_thread::sleep_for(FRAME_DT);
         }
+
 
         cout << "Exiting normally." << endl;
     }
