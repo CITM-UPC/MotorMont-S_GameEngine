@@ -1,47 +1,69 @@
-#include <windows.h>
 #include <GL/glew.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <iostream>
 #include <chrono>
 #include <thread>
-#include "MyGameEngine/Camera.h"
+#include <exception>
+#include <glm/glm.hpp>
+#include <iostream>
+#include "MyGameEngine/MyWindow.h"
+#include "MyGameEngine/Mesh.h"
+#include "MyGameEngine/LoadModel.h"
+#include "MyGameEngine/Texture.h"
 
-// Window dimensions
-const unsigned int WINDOW_WIDTH = 1280;
-const unsigned int WINDOW_HEIGHT = 720;
-const unsigned int FPS = 60;
-const auto FRAME_DT = std::chrono::duration<float>(1.0f / FPS);
+using namespace std;
 
+using hrclock = chrono::high_resolution_clock;
+using ivec2 = glm::ivec2;
+
+static const ivec2 WINDOW_SIZE(1280, 720);
+static const unsigned int FPS = 60;
+static const auto FRAME_DT = 1.0s / FPS;
+
+// Shader sources
 const char* vertexShaderSource = R"(
 #version 330 core
 layout(location = 0) in vec3 position;
-uniform mat4 projection;
-uniform mat4 view;
+
 void main() {
-    gl_Position = projection * view * vec4(position, 1.0);
+    gl_Position = vec4(position, 1.0);
 }
 )";
 
 const char* fragmentShaderSource = R"(
 #version 330 core
-out vec4 fragColor;
+out vec4 color;
+
 void main() {
-    fragColor = vec4(0.5, 0.5, 0.5, 1.0);
+    color = vec4(0.8, 0.3, 0.3, 1.0); // Set color to a light reddish hue
 }
 )";
 
-LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-    if (uMsg == WM_DESTROY) {
-        PostQuitMessage(0);
-        return 0;
+static void init_openGL() {
+    if (glewInit() != GLEW_OK) {
+        cerr << "Failed to initialize GLEW." << endl;
+        throw exception("GLEW initialization failed.");
     }
-    return DefWindowProc(hwnd, uMsg, wParam, lParam);
-}
-
-void initOpenGL() {
+    if (!GLEW_VERSION_3_0) {
+        cerr << "OpenGL 3.0 required but not available." << endl;
+        throw exception("OpenGL 3.0 required but not available.");
+    }
     glEnable(GL_DEPTH_TEST);
     glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
+}
+
+void drawGrid(float size, int divisions) {
+    glBegin(GL_LINES);
+
+    // Draw the grid lines along the X-axis
+    for (int i = -divisions; i <= divisions; ++i) {
+        float pos = static_cast<float>(i) * size / divisions;
+        glColor3f(0.8f, 0.8f, 0.8f); // Light gray color
+        glVertex3f(pos, 0.0f, -size); // Start
+        glVertex3f(pos, 0.0f, size);  // End
+        glVertex3f(-size, 0.0f, pos); // Start
+        glVertex3f(size, 0.0f, pos);  // End
+    }
+
+    glEnd();
 }
 
 GLuint createShaderProgram() {
@@ -53,9 +75,9 @@ GLuint createShaderProgram() {
     glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
     if (!success) {
         char infoLog[512];
-        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-        std::cerr << "Vertex shader compilation failed: " << infoLog << std::endl;
-        throw std::runtime_error("Vertex shader compilation failed");
+        glGetShaderInfoLog(vertexShader, 512, nullptr, infoLog);
+        cerr << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << endl;
+        throw exception("Vertex shader compilation failed.");
     }
 
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
@@ -65,9 +87,9 @@ GLuint createShaderProgram() {
     glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
     if (!success) {
         char infoLog[512];
-        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-        std::cerr << "Fragment shader compilation failed: " << infoLog << std::endl;
-        throw std::runtime_error("Fragment shader compilation failed");
+        glGetShaderInfoLog(fragmentShader, 512, nullptr, infoLog);
+        cerr << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << endl;
+        throw exception("Fragment shader compilation failed.");
     }
 
     GLuint shaderProgram = glCreateProgram();
@@ -75,139 +97,47 @@ GLuint createShaderProgram() {
     glAttachShader(shaderProgram, fragmentShader);
     glLinkProgram(shaderProgram);
 
-    // Check for linking errors
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-    if (!success) {
-        char infoLog[512];
-        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-        std::cerr << "Shader program linking failed: " << infoLog << std::endl;
-        throw std::runtime_error("Shader program linking failed");
-    }
-
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
+
     return shaderProgram;
 }
 
-void drawGrid(float size, int divisions) {
-    glBegin(GL_LINES);
-    glColor3f(0.8f, 0.8f, 0.8f); // Set grid line color
-    for (int i = -divisions; i <= divisions; ++i) {
-        float pos = i * size / divisions;
-        glVertex3f(pos, 0.0f, -size);
-        glVertex3f(pos, 0.0f, size);
-        glVertex3f(-size, 0.0f, pos);
-        glVertex3f(size, 0.0f, pos);
-    }
-    glEnd();
-}
+int main(int argc, char** argv) {
+    try {
+        MyWindow window("OpenGL Model Rendering", WINDOW_SIZE.x, WINDOW_SIZE.y);
+        init_openGL();
 
-int main() {
-    // Step 1: Register the window class
-    WNDCLASS wc = {};
-    wc.lpfnWndProc = WindowProc;
-    wc.hInstance = GetModuleHandle(nullptr);
-    wc.lpszClassName = TEXT("OpenGLWindowClass");
+        // Load and compile shaders here
+        GLuint shaderProgram = createShaderProgram();
 
-    RegisterClass(&wc);
-
-    // Step 2: Create the window
-    HWND hwnd = CreateWindowEx(
-        0,
-        TEXT("OpenGLWindowClass"),
-        TEXT("OpenGL Window"),
-        WS_OVERLAPPEDWINDOW,
-        CW_USEDEFAULT, CW_USEDEFAULT, WINDOW_WIDTH, WINDOW_HEIGHT,
-        nullptr,
-        nullptr,
-        wc.hInstance,
-        nullptr
-    );
-
-    if (!hwnd) {
-        std::cerr << "Failed to create window" << std::endl;
-        return -1;
-    }
-
-    // Step 3: Set up pixel format for OpenGL
-    HDC hdc = GetDC(hwnd);
-    PIXELFORMATDESCRIPTOR pfd = {};
-    pfd.nSize = sizeof(pfd);
-    pfd.nVersion = 1;
-    pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
-    pfd.iPixelType = PFD_TYPE_RGBA;
-    pfd.cColorBits = 32;
-    pfd.cDepthBits = 24;
-    pfd.iLayerType = PFD_MAIN_PLANE;
-
-    int pixelFormat = ChoosePixelFormat(hdc, &pfd);
-    SetPixelFormat(hdc, pixelFormat, &pfd);
-
-    // Step 4: Create and enable the OpenGL rendering context
-    HGLRC hglrc = wglCreateContext(hdc);
-    wglMakeCurrent(hdc, hglrc);
-
-    // Step 5: Initialize GLEW after creating an OpenGL context
-    glewExperimental = GL_TRUE; // Enable experimental features for GLEW
-    if (glewInit() != GLEW_OK) {
-        std::cerr << "Failed to initialize GLEW" << std::endl;
-        return -1;
-    }
-
-    initOpenGL(); // Initialize OpenGL settings
-    GLuint shaderProgram = createShaderProgram();
-
-    Camera camera;
-    camera.setProjection(10.0f, 0.1f, 100.0f); // Set orthographic projection
-    glm::vec3 camTarget(0.0f, 0.0f, 0.0f);
-
-    // Step 6: Show the window
-    ShowWindow(hwnd, SW_SHOW);
-
-    // Step 7: Enter the message loop
-    MSG msg = {};
-    while (msg.message != WM_QUIT) {
-        if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
+        // Create the mesh and load the model
+        Mesh myMesh;
+        if (!myMesh.loadModel("Assets/BakerHouse/BakerHouse.fbx")) {
+            cerr << "Failed to load model: Assets/BakerHouse.fbx" << endl;
+            return -1;
         }
-        else {
-            // Rendering code
+
+        // Main render loop
+        while (window.processEvents() && window.isOpen()) {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            // Update the camera's view matrix
-            camera.updateViewMatrix(camTarget);
-
-            // Use the shader program and set uniforms
-            glUseProgram(shaderProgram);
-            GLint projLoc = glGetUniformLocation(shaderProgram, "projection");
-            GLint viewLoc = glGetUniformLocation(shaderProgram, "view");
-
-            if (projLoc != -1 && viewLoc != -1) {
-                glUniformMatrix4fv(projLoc, 1, GL_FALSE, &camera.projection[0][0]);
-                glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &camera.view[0][0]);
-            }
-            else {
-                std::cerr << "Failed to get uniform locations for projection or view" << std::endl;
-            }
-
             // Draw the grid
-            drawGrid(10.0f, 10);
+            drawGrid(10.0f, 10); // 10 units size, with 10 divisions
 
-            // Swap buffers
-            SwapBuffers(hdc);
+            glUseProgram(shaderProgram); // Use the shader program before drawing
+            myMesh.draw();
 
-            // Cap the frame rate
-            std::this_thread::sleep_for(FRAME_DT);
+            window.swapBuffers();
+            this_thread::sleep_for(FRAME_DT); // Simple frame rate control
         }
-    }
 
-    // Step 8: Clean up resources
-    glDeleteProgram(shaderProgram);
-    wglMakeCurrent(nullptr, nullptr);
-    wglDeleteContext(hglrc);
-    ReleaseDC(hwnd, hdc);
-    DestroyWindow(hwnd);
+        cout << "Exiting normally." << endl;
+    }
+    catch (const exception& e) {
+        cerr << "Exception: " << e.what() << endl;
+        return -1;
+    }
 
     return 0;
 }
