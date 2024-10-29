@@ -2,31 +2,34 @@
 
 #include <vector>
 #include <glm/glm.hpp>
+#include <glm/vec2.hpp>
+#include <glm/vec3.hpp>
+#include <string>
+#include <GL/glew.h>
 #include "BufferObject.h"
 #include "BoundingBox.h"
+#include "LoadModel.h"
 
 class Mesh {
+    GLuint _vao;
+    BufferObject _vertexBuffer;
+    BufferObject _normalBuffer;
+    BufferObject _texCoordBuffer;
+    BufferObject _indexBuffer;
 
-	BufferObject _texCoordBuffer;
-	BufferObject _normalBuffer;
-	BufferObject _colorBuffer;
-	BufferObject _vertexBuffer;
-	BufferObject _indexBuffer;
-
-	std::vector<glm::vec3> _vertices;
-	std::vector<unsigned int> _indices;
-
-	BoundingBox _boundingBox;
+    std::vector<glm::vec3> _vertices;
+    std::vector<unsigned int> _indices;
+    BoundingBox _boundingBox;
 
 public:
-	const auto& vertices() const { return _vertices; }
-	const auto& indices() const { return _indices; }
-	const auto& boundingBox() const { return _boundingBox; }
+    Mesh();
+    ~Mesh();
 
-	void load(const glm::vec3* verts, size_t num_verts, const unsigned int* indexs, size_t num_indexs);
-	void loadTexCoords(const glm::vec2* texCoords);
-	void loadNormals(const glm::vec3* normals);
-	void loadColors(const glm::u8vec3* colors);
-	void draw() const;
+    const auto& vertices() const { return _vertices; }
+    const auto& indices() const { return _indices; }
+    const auto& boundingBox() const { return _boundingBox; }
 
+    bool loadModel(const std::string& path);
+    void loadFromModelData(const ModelData& modelData);
+    void draw() const;
 };

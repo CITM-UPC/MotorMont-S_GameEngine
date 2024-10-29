@@ -19,12 +19,14 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="App.h" />
     <ClInclude Include="BoundingBox.h" />
     <ClInclude Include="BufferObject.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="GameObject.h" />
     <ClInclude Include="GraphicObject.h" />
     <ClInclude Include="Image.h" />
+    <ClInclude Include="LoadModel.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="MyWindow.h" />
     <ClInclude Include="readOnlyView.h" />
@@ -34,12 +36,14 @@
     <ClInclude Include="types.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="App.cpp" />
     <ClCompile Include="BoundingBox.cpp" />
     <ClCompile Include="BufferObject.cpp" />
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="GameObject.cpp" />
     <ClCompile Include="GraphicObject.cpp" />
     <ClCompile Include="Image.cpp" />
+    <ClCompile Include="LoadModel.cpp" />
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="MyWindow.cpp" />
     <ClCompile Include="Texture.cpp" />
@@ -131,6 +135,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
