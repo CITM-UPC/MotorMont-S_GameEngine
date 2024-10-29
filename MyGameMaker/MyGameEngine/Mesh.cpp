@@ -31,27 +31,29 @@ bool Mesh::loadModel(const std::string& path) {
 void Mesh::loadFromModelData(const ModelData& modelData) {
     glBindVertexArray(_vao);
 
-    // Load vertices
     _vertices = modelData.vertices;
     _vertexBuffer.loadElements(_vertices.size(), _vertices.data());
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
     glEnableVertexAttribArray(0);
 
-    // Load normals
     if (!modelData.normals.empty()) {
         _normalBuffer.loadElements(modelData.normals.size(), modelData.normals.data());
         glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
         glEnableVertexAttribArray(1);
     }
 
-    // Load texture coordinates
     if (!modelData.texCoords.empty()) {
         _texCoordBuffer.loadElements(modelData.texCoords.size(), modelData.texCoords.data());
         glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
         glEnableVertexAttribArray(2);
     }
 
-    // Load indices
+    if (!modelData.colors.empty()) {
+        _colorBuffer.loadElements(modelData.colors.size(), modelData.colors.data());
+        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+        glEnableVertexAttribArray(3);
+    }
+
     _indices = modelData.indices;
     _indexBuffer.loadIndices(_indices.size(), _indices.data());
 

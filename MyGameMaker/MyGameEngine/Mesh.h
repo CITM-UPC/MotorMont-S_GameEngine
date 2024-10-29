@@ -2,8 +2,6 @@
 
 #include <vector>
 #include <glm/glm.hpp>
-#include <glm/vec2.hpp>
-#include <glm/vec3.hpp>
 #include <string>
 #include <GL/glew.h>
 #include "BufferObject.h"
@@ -15,6 +13,7 @@ class Mesh {
     BufferObject _vertexBuffer;
     BufferObject _normalBuffer;
     BufferObject _texCoordBuffer;
+    BufferObject _colorBuffer; // Added for colors
     BufferObject _indexBuffer;
 
     std::vector<glm::vec3> _vertices;
