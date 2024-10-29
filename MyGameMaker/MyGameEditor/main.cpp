@@ -19,6 +19,14 @@ static const auto FRAME_DT = 1.0s / FPS;
 static Camera camera;
 
 // Función para dibujar la grilla en el plano XZ
+
+void initOpenGL() {
+    glewInit();
+    glEnable(GL_DEPTH_TEST);
+    glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
+}
+
+
 void drawGrid(float size, int divisions) {
     glLineWidth(1.0f);
     glBegin(GL_LINES);
