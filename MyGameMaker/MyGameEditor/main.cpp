@@ -1,17 +1,41 @@
 #include <iostream>
-#include <fstream>
-#include <glm/glm.hpp>
 #include <GL/glew.h>
 #include <GL/freeglut.h>
+#include <glm/glm.hpp>
+#include <IL/il.h>
+#include <IL/ilu.h>
 #include "MyGameEngine/Camera.h"
 #include "MyGameEngine/Texture.h"
 #include "MyGameEngine/Mesh.h"
 #include "MyGameEngine/GraphicObject.h"
+#include "MyGameEngine/Image.h"
+
 using namespace std;
 
 static bool paused = true;
 static Camera camera;
 static GraphicObject scene;
+static Texture texture;
+static std::shared_ptr<Image> image;
+
+static void checkGLError(const std::string& message) {
+    GLenum err;
+    while ((err = glGetError()) != GL_NO_ERROR) {
+        std::cerr << "OpenGL error (" << message << "): " << err << std::endl;
+    }
+}
+
+static void loadTexture() {
+    image = std::make_shared<Image>();
+    if (image->loadFromFile("Assets/BakerHouse/Baker_house.png")) {
+        texture.setImage(image);
+        texture.wrapMode = Texture::Repeat;
+        texture.filter = Texture::Linear;
+    }
+    else {
+        std::cerr << "Failed to load texture image" << std::endl;
+    }
+}
 
 static void drawAxis(double size) {
     glLineWidth(2.0);
@@ -45,6 +69,8 @@ static void display_func() {
     glMatrixMode(GL_MODELVIEW);
     glLoadMatrixd(&camera.view()[0][0]);
 
+    texture.bind();
+
     drawAxis(1.0);
     drawFloorGrid(16, 0.25);
     scene.draw();
@@ -77,9 +103,17 @@ int main(int argc, char* argv[]) {
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
     glutInitWindowSize(1280, 720);
-    glutCreateWindow("FBX Loader Example");
+    glutCreateWindow("Texture Loader Example");
+
+    if (ilGetInteger(IL_VERSION_NUM) < IL_VERSION) {
+        std::cerr << "DevIL library version mismatch" << std::endl;
+        return EXIT_FAILURE;
+    }
+    ilInit();
+    iluInit();
 
     init_opengl();
+    loadTexture();
 
     camera.transform().pos() = glm::vec3(0, 1, 4);
     camera.transform().rotate(glm::radians(180.0), glm::vec3(0, 1, 0));
@@ -88,6 +122,11 @@ int main(int argc, char* argv[]) {
     if (mesh.loadFromFile("Assets/BakerHouse/BakerHouse.fbx")) {
         auto& mesh_object = scene.emplaceChild();
         mesh_object.setMesh(std::make_shared<Mesh>(std::move(mesh)));
+
+        mesh_object.setTextureImage(image);
+    }
+    else {
+        std::cerr << "Failed to load BakerHouse model" << std::endl;
     }
 
     glutDisplayFunc(display_func);
