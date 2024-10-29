@@ -1,4 +1,5 @@
 #include <iostream>
+#include <unordered_map>
 #include <GL/glew.h>
 #include <GL/freeglut.h>
 #include <glm/glm.hpp>
@@ -17,9 +18,12 @@ static Camera camera;
 static GraphicObject scene;
 static Texture texture;
 static std::shared_ptr<Image> image;
-float movementSpeed = 0.1f;  // Velocidad de movimiento de la cámara
+float movementSpeed = 0.02f;  // Speed for WASD movement
 
-// Función para verificar errores de OpenGL
+// Key state map to track pressed keys
+static std::unordered_map<unsigned char, bool> keyState;
+
+// Function to handle OpenGL errors
 static void checkGLError(const std::string& message) {
     GLenum err;
     while ((err = glGetError()) != GL_NO_ERROR) {
@@ -27,7 +31,7 @@ static void checkGLError(const std::string& message) {
     }
 }
 
-// Cargar la textura
+// Function to load texture
 static void loadTexture() {
     image = std::make_shared<Image>();
     if (image->loadFromFile("Assets/BakerHouse/Baker_house.png")) {
@@ -40,7 +44,7 @@ static void loadTexture() {
     }
 }
 
-// Dibujar el eje
+// Draw the axis
 static void drawAxis(double size) {
     glLineWidth(2.0);
     glBegin(GL_LINES);
@@ -56,7 +60,7 @@ static void drawAxis(double size) {
     glEnd();
 }
 
-// Dibujar el suelo
+// Draw the floor grid
 static void drawFloorGrid(int size, double step) {
     glColor3ub(0, 0, 0);
     glBegin(GL_LINES);
@@ -69,7 +73,7 @@ static void drawFloorGrid(int size, double step) {
     glEnd();
 }
 
-// Función de renderizado
+// Rendering function
 static void display_func() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glMatrixMode(GL_MODELVIEW);
@@ -84,7 +88,7 @@ static void display_func() {
     glutSwapBuffers();
 }
 
-// Inicializar OpenGL
+// OpenGL initialization
 static void init_opengl() {
     glewInit();
     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
@@ -99,7 +103,7 @@ static void init_opengl() {
     glClearColor(0.5, 0.5, 0.5, 1.0);
 }
 
-// Función de redimensionamiento de la ventana
+// Reshape function
 static void reshape_func(int width, int height) {
     glViewport(0, 0, width, height);
     camera.aspect = static_cast<double>(width) / height;
@@ -107,28 +111,37 @@ static void reshape_func(int width, int height) {
     glLoadMatrixd(&camera.projection()[0][0]);
 }
 
-// Función de entrada de teclado para mover la cámara
-static void keyboard_func(unsigned char key, int x, int y) {
-    switch (key) {
-    case 'w':  // Movimiento hacia adelante
-        camera.transform().translate(glm::vec3(0, 0, movementSpeed));
-        break;
-    case 's':  // Movimiento hacia atrás
-        camera.transform().translate(glm::vec3(0, 0, -movementSpeed));
-        break;
-    case 'a':  // Movimiento hacia la izquierda
-        camera.transform().translate(glm::vec3(-movementSpeed, 0, 0));
-        break;
-    case 'd':  // Movimiento hacia la derecha
-        camera.transform().translate(glm::vec3(movementSpeed, 0, 0));
-        break;
+// Update movement based on active keys
+void updateMovement() {
+    glm::vec3 direction(0.0f);
+
+    if (keyState['w']) direction.z += movementSpeed;
+    if (keyState['s']) direction.z -= movementSpeed;
+    if (keyState['a']) direction.x += movementSpeed;
+    if (keyState['d']) direction.x -= movementSpeed;
+
+    if (glm::length(direction) > 0.0f) {
+        direction = glm::normalize(direction) * movementSpeed;
+        camera.transform().translate(direction);
     }
-    glutPostRedisplay();  // Solicita actualizar la pantalla después del movimiento
+    glutPostRedisplay();
 }
 
-// Función idle para mantener la ventana actualizada
+// Keyboard function for key press events
+static void keyboard_func(unsigned char key, int x, int y) {
+    keyState[key] = true;
+    updateMovement();
+}
+
+// Keyboard function for key release events
+static void keyboard_up_func(unsigned char key, int x, int y) {
+    keyState[key] = false;
+    updateMovement();
+}
+
+// Idle function to continuously update movement
 static void idle_func() {
-    glutPostRedisplay();
+    updateMovement();
 }
 
 int main(int argc, char* argv[]) {
@@ -147,29 +160,28 @@ int main(int argc, char* argv[]) {
     init_opengl();
     loadTexture();
 
-    // Posición inicial de la cámara
+    // Initial camera position
     camera.transform().pos() = glm::vec3(0, 1, 4);
     camera.transform().rotate(glm::radians(180.0), glm::vec3(0, 1, 0));
 
-    // Cargar un modelo de ejemplo
+    // Load a sample model
     Mesh mesh;
     if (mesh.loadFromFile("Assets/BakerHouse/BakerHouse.fbx")) {
         auto& mesh_object = scene.emplaceChild();
         mesh_object.setMesh(std::make_shared<Mesh>(std::move(mesh)));
-
         mesh_object.setTextureImage(image);
     }
     else {
         std::cerr << "Failed to load BakerHouse model" << std::endl;
     }
 
-    // Vincular funciones de GLUT
+    // Link GLUT functions
     glutDisplayFunc(display_func);
     glutReshapeFunc(reshape_func);
-    glutKeyboardFunc(keyboard_func);  // Vincular la función de teclado
-    glutIdleFunc(idle_func);  // Actualizar pantalla constantemente
+    glutKeyboardFunc(keyboard_func);      // Link key press event
+    glutKeyboardUpFunc(keyboard_up_func); // Link key release event
+    glutIdleFunc(idle_func);              // Link idle function for smooth movement
 
     glutMainLoop();
-
     return EXIT_SUCCESS;
 }
