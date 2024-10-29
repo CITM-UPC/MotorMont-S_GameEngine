@@ -1,61 +1,65 @@
 #include "Mesh.h"
-#include <stdexcept>
-#include <iostream>
+#include <GL/glew.h>
 
-Mesh::Mesh() : _vao(0) {}
+void Mesh::load(const glm::vec3* verts, size_t num_verts, const unsigned int* indexs, size_t num_indexs) {
+	_vertices.assign(verts, verts + num_verts);
+	_indices.assign(indexs, indexs + num_indexs);
+	_vertexBuffer.loadElements(_vertices.size(), _vertices.data());
+	_indexBuffer.loadIndices(_indices.size(), _indices.data());
+	_texCoordBuffer.unload();
+	_normalBuffer.unload();
+	_colorBuffer.unload();
 
-Mesh::~Mesh() {
-    if (_vao != 0) {
-        glDeleteVertexArrays(1, &_vao);
-    }
+	_boundingBox.min = _vertices.front();
+	_boundingBox.max = _vertices.front();
+
+	for (const auto& v : _vertices) {
+		_boundingBox.min = glm::min(_boundingBox.min, glm::dvec3(v));
+		_boundingBox.max = glm::max(_boundingBox.max, glm::dvec3(v));
+	}
 }
 
-bool Mesh::loadModel(const std::string& path) {
-    if (_vao == 0) {
-        glGenVertexArrays(1, &_vao);
-    }
-    glBindVertexArray(_vao);
-
-    ModelData modelData;
-    if (!LoadModel(path, modelData)) {
-        std::cerr << "Failed to load model: " << path << std::endl;
-        return false;
-    }
-
-    loadFromModelData(modelData);
-    glBindVertexArray(0);
-
-    return true;
+void Mesh::loadTexCoords(const glm::vec2* texCoords) {
+	_texCoordBuffer.loadElements(_vertices.size(), texCoords);
 }
 
-void Mesh::loadFromModelData(const ModelData& modelData) {
-    glBindVertexArray(_vao);
+void Mesh::loadNormals(const glm::vec3* normals) {
+	_normalBuffer.loadElements(_vertices.size(), normals);
+}
 
-    _vertices = modelData.vertices;
-    _vertexBuffer.loadElements(_vertices.size(), _vertices.data());
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-    glEnableVertexAttribArray(0);
-
-    if (!modelData.normals.empty()) {
-        _normalBuffer.loadElements(modelData.normals.size(), modelData.normals.data());
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-        glEnableVertexAttribArray(1);
-    }
-
-    if (!modelData.texCoords.empty()) {
-        _texCoordBuffer.loadElements(modelData.texCoords.size(), modelData.texCoords.data());
-        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
-        glEnableVertexAttribArray(2);
-    }
-
-    _indices = modelData.indices;
-    _indexBuffer.loadIndices(_indices.size(), _indices.data());
-
-    glBindVertexArray(0);
+void Mesh::loadColors(const glm::u8vec3* colors) {
+	_colorBuffer.loadElements(_vertices.size(), colors);
 }
 
 void Mesh::draw() const {
-    glBindVertexArray(_vao);
-    glDrawElements(GL_TRIANGLES, static_cast<unsigned int>(_indices.size()), GL_UNSIGNED_INT, nullptr);
-    glBindVertexArray(0);
+
+	if (_texCoordBuffer.id()) {
+		glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+		_texCoordBuffer.bind();
+		glTexCoordPointer(2, GL_FLOAT, 0, nullptr);
+	}
+
+	if (_normalBuffer.id()) {
+		glEnableClientState(GL_NORMAL_ARRAY);
+		_normalBuffer.bind();
+		glNormalPointer(GL_FLOAT, 0, nullptr);
+	}
+
+	if (_colorBuffer.id()) {
+		glEnableClientState(GL_COLOR_ARRAY);
+		_colorBuffer.bind();
+		glColorPointer(3, GL_UNSIGNED_BYTE, 0, nullptr);
+	}
+
+	glEnableClientState(GL_VERTEX_ARRAY);
+	_vertexBuffer.bind();
+	glVertexPointer(3, GL_FLOAT, 0, nullptr);
+
+	_indexBuffer.bind();
+	glDrawElements(GL_TRIANGLES, static_cast<unsigned int>(_indices.size()), GL_UNSIGNED_INT, nullptr);
+
+	glDisableClientState(GL_VERTEX_ARRAY);
+	if (_colorBuffer.id()) glDisableClientState(GL_COLOR_ARRAY);
+	if (_normalBuffer.id()) glDisableClientState(GL_NORMAL_ARRAY);
+	if (_texCoordBuffer.id()) glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 }
