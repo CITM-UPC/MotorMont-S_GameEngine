@@ -51,14 +51,24 @@ GLuint createShaderProgram() {
 
     GLint success;
     glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-    if (!success) throw std::runtime_error("Vertex shader compilation failed");
+    if (!success) {
+        char infoLog[512];
+        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
+        std::cerr << "Vertex shader compilation failed: " << infoLog << std::endl;
+        throw std::runtime_error("Vertex shader compilation failed");
+    }
 
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragmentShader, 1, &fragmentShaderSource, nullptr);
     glCompileShader(fragmentShader);
 
     glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-    if (!success) throw std::runtime_error("Fragment shader compilation failed");
+    if (!success) {
+        char infoLog[512];
+        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
+        std::cerr << "Fragment shader compilation failed: " << infoLog << std::endl;
+        throw std::runtime_error("Fragment shader compilation failed");
+    }
 
     GLuint shaderProgram = glCreateProgram();
     glAttachShader(shaderProgram, vertexShader);
@@ -67,7 +77,12 @@ GLuint createShaderProgram() {
 
     // Check for linking errors
     glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-    if (!success) throw std::runtime_error("Shader program linking failed");
+    if (!success) {
+        char infoLog[512];
+        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
+        std::cerr << "Shader program linking failed: " << infoLog << std::endl;
+        throw std::runtime_error("Shader program linking failed");
+    }
 
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
@@ -76,9 +91,9 @@ GLuint createShaderProgram() {
 
 void drawGrid(float size, int divisions) {
     glBegin(GL_LINES);
+    glColor3f(0.8f, 0.8f, 0.8f); // Set grid line color
     for (int i = -divisions; i <= divisions; ++i) {
         float pos = i * size / divisions;
-        glColor3f(0.8f, 0.8f, 0.8f);
         glVertex3f(pos, 0.0f, -size);
         glVertex3f(pos, 0.0f, size);
         glVertex3f(-size, 0.0f, pos);
