@@ -1,22 +1,23 @@
 #pragma once
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
+
+#include "Transform.h"
 
 class Camera {
-public:
-    glm::vec3 position;
-    glm::vec3 upDir = glm::vec3(0.0f, 1.0f, 0.0f);
-    float aspect = 16.0f / 9.0f;
-    float zNear = 0.1f;
-    float zFar = 100.0f;
-    float fov = 45.0f; // Campo de visión en grados
-    glm::mat4 view = glm::mat4(1.0f);
-    glm::mat4 projection = glm::mat4(1.0f);
-    bool isOrthographic = true;
 
-    Camera();
-    void updateViewMatrix(const glm::vec3& target);
-    void setProjection(float fov, float near, float far); // Cambiado a incluir `fov`
-    void applyProjection() const;
-    void toggleProjection();
+public:
+	double fov = glm::radians(60.0);
+	double aspect = 16.0 / 9.0;
+	double zNear = 0.1;
+	double zFar = 128.0;
+
+private:
+	Transform _transform;
+
+public:
+	const auto& transform() const { return _transform; }
+	auto& transform() { return _transform; }
+
+	mat4 projection() const;
+	mat4 view() const;
+
 };
