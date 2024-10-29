@@ -1,38 +1,41 @@
 #pragma once
 
-#include "types.h"
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 class Transform {
-
-	union {
-		mat4 _mat = mat4(1.0);
-		struct {
-			vec3 _left; mat4::value_type _left_w;
-			vec3 _up; mat4::value_type _up_w;
-			vec3 _fwd; mat4::value_type _fwd_w;
-			vec3 _pos; mat4::value_type _pos_w;
-		};
-	};
+    union {
+        glm::mat4 _mat;
+        struct {
+            glm::vec3 _left;
+            glm::mat4::value_type _left_w;
+            glm::vec3 _up;
+            glm::mat4::value_type _up_w;
+            glm::vec3 _fwd;
+            glm::mat4::value_type _fwd_w;
+            glm::vec3 _pos;
+            glm::mat4::value_type _pos_w;
+        };
+    };
 
 public:
-	const auto& mat() const { return _mat; }
-	const auto& left() const { return _left; }
-	const auto& up() const { return _up; }
-	const auto& fwd() const { return _fwd; }
-	const auto& pos() const { return _pos; }
-	auto& pos() { return _pos; }
+    Transform() : _mat(1.0f) {}
+    Transform(const glm::mat4& mat) : _mat(mat) {}
 
-	const auto* data() const { return &_mat[0][0]; }
+    const glm::mat4& mat() const { return _mat; }
+    const glm::vec3& left() const { return _left; }
+    const glm::vec3& up() const { return _up; }
+    const glm::vec3& fwd() const { return _fwd; }
+    const glm::vec3& pos() const { return _pos; }
+    glm::vec3& pos() { return _pos; }
+    const float* data() const { return &_mat[0][0]; }
 
-	Transform() = default;
-	Transform(const mat4& mat) : _mat(mat) {}
-
-
-	void translate(const vec3& v);
-	void rotate(double rads, const vec3& v);
-
-	Transform operator*(const mat4& other) { return Transform(_mat * other); }
-	Transform operator*(const Transform& other) { return Transform(_mat * other._mat); }
+    void translate(const glm::vec3& v);
+    void rotate(double rads, const glm::vec3& v);
+    Transform operator*(const glm::mat4& other) const { return Transform(_mat * other); }
+    Transform operator*(const Transform& other) const { return Transform(_mat * other._mat); }
 };
 
-inline Transform operator*(const mat4& m, const Transform& t) { return Transform(m * t.mat()); }
+inline Transform operator*(const glm::mat4& m, const Transform& t) {
+    return Transform(m * t.mat());
+}

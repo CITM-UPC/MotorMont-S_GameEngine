@@ -1,10 +1,25 @@
+// Camera.cpp
 #include "Camera.h"
-#include <glm/gtc/matrix_transform.hpp>
 
-glm::dmat4 Camera::projection() const {
-    return glm::ortho(-orthoSize * aspect, orthoSize * aspect, -orthoSize, orthoSize, zNear, zFar);
+Camera::Camera() : position(0.0f, 0.0f, 5.0f) {
+    updateViewMatrix(glm::vec3(0.0f, 0.0f, 0.0f));
+    setProjection(10.0f, 0.1f, 100.0f);
 }
 
-glm::dmat4 Camera::view() const {
-    return glm::lookAt(_transform.pos(), _transform.pos() + _transform.fwd(), _transform.up());
+void Camera::updateViewMatrix(const glm::vec3& target) {
+    view = glm::lookAt(position, target, upDir);
+}
+
+void Camera::setProjection(float size, float near, float far) {
+    if (isOrthographic) {
+        float orthoSize = size;
+        projection = glm::ortho(-orthoSize * aspect, orthoSize * aspect, -orthoSize, orthoSize, near, far);
+    }
+    else {
+        projection = glm::perspective(glm::radians(size), aspect, near, far);
+    }
+}
+
+void Camera::toggleProjection() {
+    isOrthographic = !isOrthographic;
 }
