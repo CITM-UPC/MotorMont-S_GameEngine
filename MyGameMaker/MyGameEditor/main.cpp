@@ -62,7 +62,7 @@ static void drawAxis(double size) {
 
 // Draw the floor grid
 static void drawFloorGrid(int size, double step) {
-    glColor3ub(0, 0, 0);
+    glColor3ub(255, 255, 255);
     glBegin(GL_LINES);
     for (double i = -size; i <= size; i += step) {
         glVertex3d(i, 0, -size);
@@ -100,7 +100,7 @@ static void init_opengl() {
     glEnable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
-    glClearColor(0.5, 0.5, 0.5, 1.0);
+    glClearColor(0.0, 0.0, 0.0, 1.0);
 }
 
 // Reshape function
