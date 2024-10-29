@@ -18,28 +18,21 @@ static const auto FRAME_DT = 1.0s / FPS;
 
 static Camera camera;
 
-// Función para dibujar la grilla en el plano XZ
-
 void initOpenGL() {
     glewInit();
     glEnable(GL_DEPTH_TEST);
     glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
 }
 
-
 void drawGrid(float size, int divisions) {
     glLineWidth(1.0f);
     glBegin(GL_LINES);
-    glColor3f(0.8f, 0.8f, 0.8f); // Color de las líneas de la grilla
+    glColor3f(0.8f, 0.8f, 0.8f);
 
     for (int i = -divisions; i <= divisions; ++i) {
         float pos = i * size / divisions;
-
-        // Líneas en el eje X (paralelas al eje Z)
         glVertex3f(pos, 0.0f, -size);
         glVertex3f(pos, 0.0f, size);
-
-        // Líneas en el eje Z (paralelas al eje X)
         glVertex3f(-size, 0.0f, pos);
         glVertex3f(size, 0.0f, pos);
     }
@@ -48,25 +41,11 @@ void drawGrid(float size, int divisions) {
     glLineWidth(1.0f);
 }
 
-static void init_openGL() {
-    if (glewInit() != GLEW_OK) {
-        cerr << "Failed to initialize GLEW." << endl;
-        throw exception("GLEW initialization failed.");
-    }
-    if (!GLEW_VERSION_3_0) {
-        cerr << "OpenGL 3.0 required but not available." << endl;
-        throw exception("OpenGL 3.0 required but not available.");
-    }
-    glEnable(GL_DEPTH_TEST);
-    glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
-}
-
 int main(int argc, char** argv) {
     try {
         MyWindow window("OpenGL Model Rendering", WINDOW_SIZE.x, WINDOW_SIZE.y);
-        init_openGL();
-
-        camera.setProjection(45.0f, 0.1f, 1000.0f); // Ajusta fov, zNear y zFar
+        initOpenGL();
+        camera.setProjection(45.0f, 0.1f, 1000.0f);
         camera.updateViewMatrix(glm::vec3(0.0f, 1.0f, 0.0f));
 
         Mesh myMesh;
@@ -75,13 +54,17 @@ int main(int argc, char** argv) {
             return -1;
         }
 
+        Texture texture;
+        if (!texture.loadFromFile("Assets/BakerHouse/Baker_house.png")) {
+            cerr << "Failed to load texture: Assets/BakerHouse/Baker_house.png" << endl;
+            return -1;
+        }
+
         while (window.processEvents() && window.isOpen()) {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            // Dibuja la grilla en el plano XZ
             drawGrid(20.0f, 20);
-
-            // Dibuja el modelo
+            texture.bind();
             myMesh.draw();
 
             window.swapBuffers();

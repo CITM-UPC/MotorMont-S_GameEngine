@@ -1,35 +1,52 @@
 #include "Texture.h"
-#include <GL/glew.h>
+#include <iostream>
+#include <string>
 
-static auto GLWrapMode(Texture::WrapModes mode) {
-	switch (mode) {
-	case Texture::Repeat: return GL_REPEAT;
-	case Texture::MirroredRepeat: return GL_MIRRORED_REPEAT;
-	case Texture::Clamp: return GL_CLAMP_TO_EDGE;
-	default: return GL_REPEAT;
-	}
+Texture::~Texture() {
+    if (textureID) {
+        glDeleteTextures(1, &textureID);
+    }
 }
 
-static auto GLMagFilter(Texture::Filters filter) {
-	switch (filter) {
-	case Texture::Nearest: return GL_NEAREST;
-	case Texture::Linear: return GL_LINEAR;
-	default: return GL_NEAREST;
-	}
-}
+bool Texture::loadFromFile(const std::string& filePath) {
+#ifdef IL_VERSION 
+    ilInit();
+    ILuint imageID;
+    ilGenImages(1, &imageID);
+    ilBindImage(imageID);
 
-static auto GLMinFilter(Texture::Filters filter) {
-	switch (filter) {
-	case Texture::Nearest: return GL_NEAREST_MIPMAP_NEAREST;
-	case Texture::Linear: return GL_LINEAR_MIPMAP_LINEAR;
-	default: return GL_NEAREST_MIPMAP_LINEAR;
-	}
+    if (!ilLoadImage((const wchar_t*)filePath.c_str())) {
+        std::cerr << "Failed to load texture: " << filePath << std::endl;
+        ilDeleteImages(1, &imageID);
+        return false;
+    }
+
+    ilConvertImage(IL_RGBA, IL_UNSIGNED_BYTE);
+
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_2D, textureID);
+
+    glTexImage2D(
+        GL_TEXTURE_2D, 0, GL_RGBA,
+        ilGetInteger(IL_IMAGE_WIDTH),
+        ilGetInteger(IL_IMAGE_HEIGHT),
+        0, GL_RGBA, GL_UNSIGNED_BYTE,
+        ilGetData()
+    );
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GLWrapMode(wrapMode));
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GLWrapMode(wrapMode));
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GLMinFilter(filter));
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GLMagFilter(filter));
+
+    ilDeleteImages(1, &imageID);
+    return true;
+#else
+    std::cerr << "DevIL library not found. Ensure DevIL is correctly installed and linked." << std::endl;
+    return false;
+#endif
 }
 
 void Texture::bind() const {
-	glBindTexture(GL_TEXTURE_2D, _img_ptr->id());
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GLWrapMode(wrapMode));
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GLWrapMode(wrapMode));
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GLMinFilter(filter));
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GLMagFilter(filter));
+    glBindTexture(GL_TEXTURE_2D, textureID);
 }
