@@ -95,6 +95,14 @@ bool Mesh::loadFromFile(const char* file_path) {
                 }
             }
 
+            if (mesh->HasTextureCoords(0)) {
+                std::vector<glm::vec2> texCoords(mesh->mNumVertices);
+                for (size_t j = 0; j < mesh->mNumVertices; ++j) {
+                    texCoords[j] = glm::vec2(mesh->mTextureCoords[0][j].x, -mesh->mTextureCoords[0][j].y);
+                }
+                subMesh.loadTexCoords(texCoords.data());
+            }
+
             subMesh._vertexBuffer.loadElements(subMesh._vertices.size(), subMesh._vertices.data());
             subMesh._indexBuffer.loadIndices(subMesh._indices.size(), subMesh._indices.data());
 
@@ -106,3 +114,4 @@ bool Mesh::loadFromFile(const char* file_path) {
     }
     return false;
 }
+
