@@ -21,12 +21,13 @@ public:
 	const auto& fwd() const { return _fwd; }
 	const auto& pos() const { return _pos; }
 	auto& pos() { return _pos; }
-
 	const auto* data() const { return &_mat[0][0]; }
 
 	Transform() = default;
 	Transform(const mat4& mat) : _mat(mat) {}
 
+	// New function to get the forward vector
+	const vec3& forward() const { return _fwd; }
 
 	void translate(const vec3& v);
 	void rotate(double rads, const vec3& v);

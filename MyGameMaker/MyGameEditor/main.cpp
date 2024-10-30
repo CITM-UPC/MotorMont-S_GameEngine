@@ -1,8 +1,12 @@
+#define SDL_MAIN_HANDLED  // Define SDL_MAIN_HANDLED before including SDL headers
+
+#include <GL/glew.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_opengl.h>
 #include <iostream>
 #include <unordered_map>
-#include <GL/glew.h>
-#include <GL/freeglut.h>
 #include <glm/glm.hpp>
+#include <glm/gtx/rotate_vector.hpp>  // For camera rotation
 #include <IL/il.h>
 #include <IL/ilu.h>
 #include "MyGameEngine/Camera.h"
@@ -18,12 +22,16 @@ static Camera camera;
 static GraphicObject scene;
 static Texture texture;
 static std::shared_ptr<Image> image;
-float movementSpeed = 0.02f;  // Speed for WASD movement
+float movementSpeed = 0.02f;
+float zoomSpeed = 0.1f;
+float sensitivity = 0.005f;  // Sensitivity for mouse movement
 
-// Key state map to track pressed keys
 static std::unordered_map<unsigned char, bool> keyState;
+static bool shiftPressed = false;
+static bool mouseButtonPressed = false;
+static int lastMouseX, lastMouseY;  // To store previous mouse position
+glm::vec3 localRight(1.0f, 0.0f, 0.0f);
 
-// Function to handle OpenGL errors
 static void checkGLError(const std::string& message) {
     GLenum err;
     while ((err = glGetError()) != GL_NO_ERROR) {
@@ -31,7 +39,6 @@ static void checkGLError(const std::string& message) {
     }
 }
 
-// Function to load texture
 static void loadTexture() {
     image = std::make_shared<Image>();
     if (image->loadFromFile("Assets/BakerHouse/Baker_house.png")) {
@@ -44,7 +51,6 @@ static void loadTexture() {
     }
 }
 
-// Draw the axis
 static void drawAxis(double size) {
     glLineWidth(2.0);
     glBegin(GL_LINES);
@@ -60,7 +66,6 @@ static void drawAxis(double size) {
     glEnd();
 }
 
-// Draw the floor grid
 static void drawFloorGrid(int size, double step) {
     glColor3ub(255, 255, 255);
     glBegin(GL_LINES);
@@ -73,82 +78,126 @@ static void drawFloorGrid(int size, double step) {
     glEnd();
 }
 
-// Rendering function
-static void display_func() {
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glMatrixMode(GL_MODELVIEW);
-    glLoadMatrixd(&camera.view()[0][0]);
+// Update movement based on active keys and mouse button state
+void updateMovement() {
+    if (!mouseButtonPressed) return;  // Only move when right mouse button is pressed
 
-    texture.bind();
+    // Adjust speed based on shift key state
+    float currentSpeed = shiftPressed ? movementSpeed * 2 : movementSpeed;
 
-    drawAxis(1.0);
-    drawFloorGrid(16, 0.25);
-    scene.draw();
+    glm::vec3 direction(0.0f);
+    if (keyState['w']) direction.z += currentSpeed;
+    if (keyState['s']) direction.z -= currentSpeed;
+    if (keyState['a']) direction.x += currentSpeed;
+    if (keyState['d']) direction.x -= currentSpeed;
 
-    glutSwapBuffers();
+    // Add controls for up and down movement with Q and E keys
+    if (keyState['q']) direction.y += currentSpeed;  // Move up
+    if (keyState['e']) direction.y -= currentSpeed;  // Move down
+
+    if (glm::length(direction) > 0.0f) {
+        direction = glm::normalize(direction) * currentSpeed;
+        camera.transform().translate(direction);
+    }
 }
 
-// OpenGL initialization
-static void init_opengl() {
-    glewInit();
+void handleInput(SDL_Event& event) {
+    switch (event.type) {
+    case SDL_KEYDOWN:
+        keyState[event.key.keysym.sym] = true;
+        if (event.key.keysym.sym == SDLK_LSHIFT || event.key.keysym.sym == SDLK_RSHIFT) shiftPressed = true;
+        updateMovement();
+        break;
+    case SDL_KEYUP:
+        keyState[event.key.keysym.sym] = false;
+        if (event.key.keysym.sym == SDLK_LSHIFT || event.key.keysym.sym == SDLK_RSHIFT) shiftPressed = false;
+        updateMovement();
+        break;
+    case SDL_MOUSEBUTTONDOWN:
+        if (event.button.button == SDL_BUTTON_RIGHT) {
+            mouseButtonPressed = true;
+            SDL_GetMouseState(&lastMouseX, &lastMouseY);  // Initialize last mouse position
+        }
+        updateMovement();
+        break;
+    case SDL_MOUSEBUTTONUP:
+        if (event.button.button == SDL_BUTTON_RIGHT) mouseButtonPressed = false;
+        break;
+    case SDL_MOUSEMOTION:
+        if (mouseButtonPressed) {
+            int mouseX, mouseY;
+            SDL_GetMouseState(&mouseX, &mouseY);
+
+            // Calculate mouse delta
+            float deltaX = static_cast<float>(lastMouseX - mouseX);  // Inverted X for yaw
+            float deltaY = static_cast<float>(mouseY - lastMouseY);  // Regular Y for pitch
+
+            // Update last mouse position
+            lastMouseX = mouseX;
+            lastMouseY = mouseY;
+
+            // Apply rotation to the camera: yaw around world Y-axis, pitch around camera's local X-axis
+            camera.transform().rotate(deltaX * sensitivity, glm::vec3(0.0f, 1.0f, 0.0f));  // Yaw (left-right) on world Y-axis
+            glm::vec3 right = glm::cross(glm::vec3(camera.transform().forward()), glm::vec3(0.0f, 1.0f, 0.0f));  // Ensure pitch is applied on the right axis
+            camera.transform().rotate(deltaY * sensitivity, localRight);  // Pitch (up-down) around local X-axis
+        }
+        break;
+    case SDL_MOUSEWHEEL:
+        glm::vec3 forward = camera.transform().forward();
+        if (event.wheel.y > 0) {
+            camera.transform().translate(forward * -zoomSpeed);
+        }
+        else if (event.wheel.y < 0) {
+            camera.transform().translate(forward * zoomSpeed);
+        }
+        break;
+    case SDL_WINDOWEVENT:
+        if (event.window.event == SDL_WINDOWEVENT_RESIZED) {
+            int width = event.window.data1;
+            int height = event.window.data2;
+            glViewport(0, 0, width, height);
+            camera.aspect = static_cast<double>(width) / height;
+        }
+        break;
+    default:
+        break;
+    }
+}
+
+void setupOpenGL() {
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LEQUAL);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_LINE_SMOOTH);
+    glEnable(GL_POINT_SMOOTH);
     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
     glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
     glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
-    glEnable(GL_LINE_SMOOTH);
-    glEnable(GL_POINT_SMOOTH);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_BLEND);
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LEQUAL);
     glClearColor(0.0, 0.0, 0.0, 1.0);
-}
 
-// Reshape function
-static void reshape_func(int width, int height) {
-    glViewport(0, 0, width, height);
-    camera.aspect = static_cast<double>(width) / height;
-    glMatrixMode(GL_PROJECTION);
-    glLoadMatrixd(&camera.projection()[0][0]);
-}
-
-// Update movement based on active keys
-void updateMovement() {
-    glm::vec3 direction(0.0f);
-
-    if (keyState['w']) direction.z += movementSpeed;
-    if (keyState['s']) direction.z -= movementSpeed;
-    if (keyState['a']) direction.x += movementSpeed;
-    if (keyState['d']) direction.x -= movementSpeed;
-
-    if (glm::length(direction) > 0.0f) {
-        direction = glm::normalize(direction) * movementSpeed;
-        camera.transform().translate(direction);
-    }
-    glutPostRedisplay();
-}
-
-// Keyboard function for key press events
-static void keyboard_func(unsigned char key, int x, int y) {
-    keyState[key] = true;
-    updateMovement();
-}
-
-// Keyboard function for key release events
-static void keyboard_up_func(unsigned char key, int x, int y) {
-    keyState[key] = false;
-    updateMovement();
-}
-
-// Idle function to continuously update movement
-static void idle_func() {
-    updateMovement();
+    // Load and set up textures
+    loadTexture();
 }
 
 int main(int argc, char* argv[]) {
-    glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
-    glutInitWindowSize(1280, 720);
-    glutCreateWindow("Texture Loader Example");
+    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+        std::cerr << "Failed to initialize SDL: " << SDL_GetError() << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    SDL_Window* window = SDL_CreateWindow("Texture Loader Example", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
+    if (!window) {
+        std::cerr << "Failed to create SDL window: " << SDL_GetError() << std::endl;
+        SDL_Quit();
+        return EXIT_FAILURE;
+    }
+
+    SDL_GLContext glContext = SDL_GL_CreateContext(window);
+    if (glewInit() != GLEW_OK) {
+        std::cerr << "Failed to initialize GLEW" << std::endl;
+        return EXIT_FAILURE;
+    }
 
     if (ilGetInteger(IL_VERSION_NUM) < IL_VERSION) {
         std::cerr << "DevIL library version mismatch" << std::endl;
@@ -157,14 +206,12 @@ int main(int argc, char* argv[]) {
     ilInit();
     iluInit();
 
-    init_opengl();
-    loadTexture();
+    setupOpenGL();
 
-    // Initial camera position
+    // Set initial camera position and orientation
     camera.transform().pos() = glm::vec3(0, 1, 4);
     camera.transform().rotate(glm::radians(180.0), glm::vec3(0, 1, 0));
 
-    // Load a sample model
     Mesh mesh;
     if (mesh.loadFromFile("Assets/BakerHouse/BakerHouse.fbx")) {
         auto& mesh_object = scene.emplaceChild();
@@ -175,13 +222,32 @@ int main(int argc, char* argv[]) {
         std::cerr << "Failed to load BakerHouse model" << std::endl;
     }
 
-    // Link GLUT functions
-    glutDisplayFunc(display_func);
-    glutReshapeFunc(reshape_func);
-    glutKeyboardFunc(keyboard_func);      // Link key press event
-    glutKeyboardUpFunc(keyboard_up_func); // Link key release event
-    glutIdleFunc(idle_func);              // Link idle function for smooth movement
+    bool running = true;
+    while (running) {
+        SDL_Event event;
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT) running = false;
+            handleInput(event);
+        }
 
-    glutMainLoop();
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glMatrixMode(GL_PROJECTION);
+        glLoadMatrixd(&camera.projection()[0][0]);
+
+        glMatrixMode(GL_MODELVIEW);
+        glLoadMatrixd(&camera.view()[0][0]);
+
+        texture.bind();
+        drawAxis(1.0);
+        drawFloorGrid(16, 0.25);
+        scene.draw();
+
+        SDL_GL_SwapWindow(window);
+        updateMovement();
+    }
+
+    SDL_GL_DeleteContext(glContext);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
     return EXIT_SUCCESS;
 }
