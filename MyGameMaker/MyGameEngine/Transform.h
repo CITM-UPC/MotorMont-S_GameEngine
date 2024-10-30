@@ -26,11 +26,11 @@ public:
 	Transform() = default;
 	Transform(const mat4& mat) : _mat(mat) {}
 
-	// New function to get the forward vector
 	const vec3& forward() const { return _fwd; }
 
 	void translate(const vec3& v);
 	void rotate(double rads, const vec3& v);
+	void alignToGlobalUp(const vec3& worldUp = vec3(0.0f, 1.0f, 0.0f));  // Aligns to global up
 
 	Transform operator*(const mat4& other) { return Transform(_mat * other); }
 	Transform operator*(const Transform& other) { return Transform(_mat * other._mat); }

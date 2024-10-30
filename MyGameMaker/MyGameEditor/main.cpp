@@ -1,4 +1,5 @@
-#define SDL_MAIN_HANDLED  // Define SDL_MAIN_HANDLED before including SDL headers
+#define SDL_MAIN_HANDLED 
+#define GLM_ENABLE_EXPERIMENTAL 
 
 #include <GL/glew.h>
 #include <SDL2/SDL.h>
@@ -6,7 +7,8 @@
 #include <iostream>
 #include <unordered_map>
 #include <glm/glm.hpp>
-#include <glm/gtx/rotate_vector.hpp>  // For camera rotation
+#include <glm/gtx/rotate_vector.hpp> 
+#include <glm/gtx/orthonormalize.hpp>  
 #include <IL/il.h>
 #include <IL/ilu.h>
 #include "MyGameEngine/Camera.h"
@@ -138,10 +140,13 @@ void handleInput(SDL_Event& event) {
 
             // Apply rotation to the camera: yaw around world Y-axis, pitch around camera's local X-axis
             camera.transform().rotate(deltaX * sensitivity, glm::vec3(0.0f, 1.0f, 0.0f));  // Yaw (left-right) on world Y-axis
-            glm::vec3 right = glm::cross(glm::vec3(camera.transform().forward()), glm::vec3(0.0f, 1.0f, 0.0f));  // Ensure pitch is applied on the right axis
             camera.transform().rotate(deltaY * sensitivity, localRight);  // Pitch (up-down) around local X-axis
+
+            // Align the camera's orientation to global up
+            camera.transform().alignToGlobalUp();
         }
         break;
+
     case SDL_MOUSEWHEEL:
         glm::vec3 forward = camera.transform().forward();
         if (event.wheel.y > 0) {
