@@ -93,8 +93,6 @@ bool Mesh::loadFromFile(const char* file_path) {
                         }
                     }
                 }
-                load(subMesh._vertices.data(), subMesh._vertices.size(), subMesh._indices.data(), subMesh._indices.size());
-
             }
 
             if (mesh->HasTextureCoords(0)) {

@@ -3,8 +3,6 @@
 #include <SDL2/SDL_video.h>
 #include <SDL2/SDL_events.h>
 
-class App;  // Declaración adelantada para evitar dependencia circular
-
 class IEventProcessor {
 public:
     virtual void processEvent(const SDL_Event& event) = 0;
@@ -36,6 +34,5 @@ public:
     bool isOpen() const { return _window; }
 
     bool processEvents(IEventProcessor* event_processor = nullptr);
-    bool processEvents(App& app);  // Usar declaración adelantada
     void swapBuffers() const;
 };

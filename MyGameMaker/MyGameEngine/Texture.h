@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include <memory>
@@ -20,5 +19,5 @@ public:
 	unsigned int id() const { return _img_ptr ? _img_ptr->id() : 0; }
 	void bind() const;
 	void setImage(const std::shared_ptr<Image>& img_ptr) { _img_ptr = img_ptr; }
-	std::shared_ptr<Image> image() const { return _img_ptr; }  // Modified to return shared_ptr<Image>
+	const auto& image() const { return *_img_ptr; }
 };
