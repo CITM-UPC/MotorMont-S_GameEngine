@@ -27,10 +27,12 @@ static std::shared_ptr<Image> image;
 float movementSpeed = 0.02f;
 float zoomSpeed = 0.1f;
 float sensitivity = 0.005f;  // Sensitivity for mouse movement
+float panSpeed = 0.01f;  // Speed for panning
 
 static std::unordered_map<unsigned char, bool> keyState;
 static bool shiftPressed = false;
 static bool mouseButtonPressed = false;
+static bool middleMouseButtonPressed = false;  // New flag for middle mouse button
 static int lastMouseX, lastMouseY;  // To store previous mouse position
 glm::vec3 localRight(1.0f, 0.0f, 0.0f);
 
@@ -82,9 +84,8 @@ static void drawFloorGrid(int size, double step) {
 
 // Update movement based on active keys and mouse button state
 void updateMovement() {
-    if (!mouseButtonPressed) return;  // Only move when right mouse button is pressed
+    if (!mouseButtonPressed && !middleMouseButtonPressed) return;  // Only move when right or middle mouse button is pressed
 
-    // Adjust speed based on shift key state
     float currentSpeed = shiftPressed ? movementSpeed * 2 : movementSpeed;
 
     glm::vec3 direction(0.0f);
@@ -118,32 +119,47 @@ void handleInput(SDL_Event& event) {
     case SDL_MOUSEBUTTONDOWN:
         if (event.button.button == SDL_BUTTON_RIGHT) {
             mouseButtonPressed = true;
-            SDL_GetMouseState(&lastMouseX, &lastMouseY);  // Initialize last mouse position
+            SDL_GetMouseState(&lastMouseX, &lastMouseY);
+        }
+        else if (event.button.button == SDL_BUTTON_MIDDLE) {  // Detect middle mouse button
+            middleMouseButtonPressed = true;
+            SDL_GetMouseState(&lastMouseX, &lastMouseY);
         }
         updateMovement();
         break;
     case SDL_MOUSEBUTTONUP:
         if (event.button.button == SDL_BUTTON_RIGHT) mouseButtonPressed = false;
+        if (event.button.button == SDL_BUTTON_MIDDLE) middleMouseButtonPressed = false;
         break;
     case SDL_MOUSEMOTION:
         if (mouseButtonPressed) {
             int mouseX, mouseY;
             SDL_GetMouseState(&mouseX, &mouseY);
 
-            // Calculate mouse delta
-            float deltaX = static_cast<float>(lastMouseX - mouseX);  // Inverted X for yaw
-            float deltaY = static_cast<float>(mouseY - lastMouseY);  // Regular Y for pitch
+            float deltaX = static_cast<float>(lastMouseX - mouseX);
+            float deltaY = static_cast<float>(mouseY - lastMouseY);
 
-            // Update last mouse position
             lastMouseX = mouseX;
             lastMouseY = mouseY;
 
-            // Apply rotation to the camera: yaw around world Y-axis, pitch around camera's local X-axis
-            camera.transform().rotate(deltaX * sensitivity, glm::vec3(0.0f, 1.0f, 0.0f));  // Yaw (left-right) on world Y-axis
-            camera.transform().rotate(deltaY * sensitivity, localRight);  // Pitch (up-down) around local X-axis
+            camera.transform().rotate(deltaX * sensitivity, glm::vec3(0.0f, 1.0f, 0.0f));
+            camera.transform().rotate(deltaY * sensitivity, localRight);
 
-            // Align the camera's orientation to global up
             camera.transform().alignToGlobalUp();
+        }
+        else if (middleMouseButtonPressed) {  // Pan logic
+            int mouseX, mouseY;
+            SDL_GetMouseState(&mouseX, &mouseY);
+
+            float deltaX = static_cast<float>(mouseX - lastMouseX);
+            float deltaY = static_cast<float>(mouseY - lastMouseY);
+
+            lastMouseX = mouseX;
+            lastMouseY = mouseY;
+
+            // Move camera sideways (left-right) and vertically (up-down) for panning
+            camera.transform().translate(localRight * deltaX * panSpeed);
+            camera.transform().translate(glm::vec3(0.0f, 1.0f, 0.0f) * deltaY * panSpeed);
         }
         break;
 
@@ -181,7 +197,6 @@ void setupOpenGL() {
     glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
     glClearColor(0.0, 0.0, 0.0, 1.0);
 
-    // Load and set up textures
     loadTexture();
 }
 
@@ -213,7 +228,6 @@ int main(int argc, char* argv[]) {
 
     setupOpenGL();
 
-    // Set initial camera position and orientation
     camera.transform().pos() = glm::vec3(0, 1, 4);
     camera.transform().rotate(glm::radians(180.0), glm::vec3(0, 1, 0));
 
