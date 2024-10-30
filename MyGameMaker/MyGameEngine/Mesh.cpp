@@ -35,6 +35,27 @@ void Mesh::loadColors(const glm::u8vec3* colors) {
     _colorBuffer.loadElements(_vertices.size(), colors);
 }
 
+
+void Mesh::drawWiredQuad(const glm::dvec3& v0, const glm::dvec3& v1, const glm::dvec3& v2, const glm::dvec3& v3) {
+    glBegin(GL_LINE_LOOP);
+    glVertex3(v0);
+    glVertex3(v1);
+    glVertex3(v2);
+    glVertex3(v3);
+    glEnd();
+}
+
+void Mesh::drawBoundingBox(const BoundingBox& bbox) {
+    glLineWidth(2.0);
+    drawWiredQuad(bbox.v000(), bbox.v001(), bbox.v011(), bbox.v010());
+    drawWiredQuad(bbox.v100(), bbox.v101(), bbox.v111(), bbox.v110());
+    drawWiredQuad(bbox.v000(), bbox.v001(), bbox.v101(), bbox.v100());
+    drawWiredQuad(bbox.v010(), bbox.v011(), bbox.v111(), bbox.v110());
+    drawWiredQuad(bbox.v000(), bbox.v010(), bbox.v110(), bbox.v100());
+    drawWiredQuad(bbox.v001(), bbox.v011(), bbox.v111(), bbox.v101());
+
+}
+
 void Mesh::draw() const {
     for (const auto& subMesh : subMeshes) {
         subMesh.draw();
@@ -69,6 +90,9 @@ void Mesh::draw() const {
     if (_colorBuffer.id()) glDisableClientState(GL_COLOR_ARRAY);
     if (_normalBuffer.id()) glDisableClientState(GL_NORMAL_ARRAY);
     if (_texCoordBuffer.id()) glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+
+	if (drawboundingBox) drawBoundingBox(_boundingBox);
+
 }
 
 bool Mesh::loadFromFile(const char* file_path) {
@@ -79,12 +103,15 @@ bool Mesh::loadFromFile(const char* file_path) {
         return false;
     }
 
+    _boundingBox.min = glm::dvec3(std::numeric_limits<double>::max());
+    _boundingBox.max = glm::dvec3(std::numeric_limits<double>::lowest());
+
     for (unsigned int i = 0; i < scene->mNumMeshes; ++i) {
         aiMesh* mesh = scene->mMeshes[i];
 
         Mesh subMesh;
-
         subMesh._vertices.resize(mesh->mNumVertices);
+
         for (size_t j = 0; j < subMesh._vertices.size(); ++j) {
             subMesh._vertices[j] = glm::vec3(mesh->mVertices[j].x, mesh->mVertices[j].y, mesh->mVertices[j].z);
         }
@@ -109,6 +136,16 @@ bool Mesh::loadFromFile(const char* file_path) {
             subMesh.loadTexCoords(texCoords.data());
         }
 
+        glm::dvec3 subMin = subMesh._vertices.front();
+        glm::dvec3 subMax = subMesh._vertices.front();
+        for (const auto& v : subMesh._vertices) {
+            subMin = glm::min(subMin, glm::dvec3(v));
+            subMax = glm::max(subMax, glm::dvec3(v));
+        }
+
+        _boundingBox.min = glm::min(_boundingBox.min, subMin);
+        _boundingBox.max = glm::max(_boundingBox.max, subMax);
+
         subMesh._vertexBuffer.loadElements(subMesh._vertices.size(), subMesh._vertices.data());
         subMesh._indexBuffer.loadIndices(subMesh._indices.size(), subMesh._indices.data());
 
@@ -117,3 +154,4 @@ bool Mesh::loadFromFile(const char* file_path) {
 
     return true;
 }
+

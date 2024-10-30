@@ -5,6 +5,7 @@
 #include "BufferObject.h"
 #include "BoundingBox.h"
 #include <assimp/scene.h>
+#include <GL/glew.h>
 
 class Mesh {
 
@@ -31,6 +32,10 @@ public:
     void loadNormals(const glm::vec3* normals);
     void loadColors(const glm::u8vec3* colors);
     void draw() const;
+    bool drawboundingBox = true;
+	static void drawBoundingBox(const BoundingBox& bbox);
+    static void drawWiredQuad(const glm::dvec3& v0, const glm::dvec3& v1, const glm::dvec3& v2, const glm::dvec3& v3);
+	inline static void glVertex3(const glm::dvec3& v) { glVertex3dv(&v.x); }
 
     bool loadFromFile(const char* file_path);  // Ahora es la única función de carga en Mesh
 };

@@ -75,7 +75,7 @@ static void drawAxis(double size) {
 }
 
 static void drawFloorGrid(int size, double step) {
-    glColor3ub(255, 255, 255);
+    glColor3ub(137, 207, 240);
     glBegin(GL_LINES);
     for (double i = -size; i <= size; i += step) {
         glVertex3d(i, 0, -size);
