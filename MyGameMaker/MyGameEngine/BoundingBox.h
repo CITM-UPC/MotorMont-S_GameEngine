@@ -1,9 +1,8 @@
-
 #pragma once
 
 #include "types.h"
+
 #include <array>
-#include <glm/glm.hpp>
 
 struct BoundingBox {
 	vec3 min;
@@ -27,7 +26,7 @@ struct BoundingBox {
 	BoundingBox(const vec3* vertices, size_t num_verts);
 
 	BoundingBox operator+(const BoundingBox& other) const;
-	bool intersects(const glm::vec3& rayDirection, const glm::vec3& rayOrigin) const;  // Declaration added
 };
+
 
 BoundingBox operator*(const mat4& mat, const BoundingBox& bbox);

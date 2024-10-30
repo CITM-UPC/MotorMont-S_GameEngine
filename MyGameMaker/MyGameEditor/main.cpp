@@ -250,26 +250,14 @@ int main(int argc, char* argv[]) {
         }
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        GLdouble projection[16];
-        GLdouble view[16];
-
-        // Convertir las matrices glm::mat4 a GLdouble
-        const glm::mat4& projMatrix = camera.projection();
-        const glm::mat4& viewMatrix = camera.view();
-
-        for (int i = 0; i < 16; ++i) {
-            projection[i] = static_cast<GLdouble>(projMatrix[i / 4][i % 4]);
-            view[i] = static_cast<GLdouble>(viewMatrix[i / 4][i % 4]);
-        }
-
         glMatrixMode(GL_PROJECTION);
-        glLoadMatrixd(projection);
+        glLoadMatrixd(&camera.projection()[0][0]);
 
         glMatrixMode(GL_MODELVIEW);
-        glLoadMatrixd(view);
+        glLoadMatrixd(&camera.view()[0][0]);
 
         texture.bind();
-        drawAxis(1.0); 
+        drawAxis(1.0);
         drawFloorGrid(16, 0.25);
         scene.draw();
 
