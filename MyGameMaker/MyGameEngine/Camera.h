@@ -1,6 +1,8 @@
+
 #pragma once
 
 #include "Transform.h"
+#include <glm/glm.hpp>
 
 class Camera {
 
@@ -17,7 +19,9 @@ public:
 	const auto& transform() const { return _transform; }
 	auto& transform() { return _transform; }
 
-	mat4 projection() const;
-	mat4 view() const;
+	glm::mat4 projection() const;
+	glm::mat4 view() const;
 
+	glm::vec3 calculateRayFromMouse(float mouseX, float mouseY, float screenWidth, float screenHeight) const;  // Declared as member function
+	glm::vec3 position() const;  // Declares position getter
 };

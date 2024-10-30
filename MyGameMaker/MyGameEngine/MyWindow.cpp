@@ -1,8 +1,16 @@
+
 #include <exception>
 #include <SDL2/SDL_video.h>
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_opengl.h>
 #include "MyWindow.h"
+#include "App.h"
+#include "Texture.h"  // Ensure Texture is included to resolve draggedTexture
+
+bool isDragging = false;
+Texture* draggedTexture = nullptr;
+GraphicObject* targetObject = nullptr;
+
 using namespace std;
 
 MyWindow::MyWindow(const char* title, unsigned short width, unsigned short height) {
@@ -49,6 +57,34 @@ bool MyWindow::processEvents(IEventProcessor* event_processor) {
         if (event_processor) event_processor->processEvent(e);
         switch (e.type) {
         case SDL_QUIT: close(); return false;
+        }
+    }
+    return true;
+}
+
+void startDrag(Texture* texture) {
+    isDragging = true;
+    draggedTexture = texture;
+}
+
+bool MyWindow::processEvents(App& app) {
+    SDL_Event e;
+    while (SDL_PollEvent(&e)) {
+        switch (e.type) {
+        case SDL_MOUSEBUTTONDOWN:
+            if (e.button.button == SDL_BUTTON_LEFT) {
+                targetObject = app.getObjectUnderCursor(e.button.x, e.button.y);
+            }
+            break;
+        case SDL_MOUSEBUTTONUP:
+            if (e.button.button == SDL_BUTTON_LEFT && isDragging) {
+                if (targetObject) {
+                    targetObject->setTextureImage(draggedTexture->image());
+                }
+                isDragging = false;
+                draggedTexture = nullptr;
+            }
+            break;
         }
     }
     return true;
