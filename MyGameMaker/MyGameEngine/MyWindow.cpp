@@ -1,17 +1,24 @@
+// MyWindow.cpp
+
 #include <exception>
 #include <SDL2/SDL_video.h>
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_opengl.h>
+#include "../MyGameEditor/MyGui.h"  // Corrected path to MyGui.h
 #include "MyWindow.h"
+
 using namespace std;
 
 MyWindow::MyWindow(const char* title, unsigned short width, unsigned short height) {
     open(title, width, height);
+    gui = new MyGUI(_window, _ctx);  // Initialize MyGUI with the window and context
 }
 
 MyWindow::~MyWindow() {
+    delete gui;  // Clean up MyGUI
     close();
 }
+
 
 void MyWindow::open(const char* title, unsigned short width, unsigned short height) {
     if (isOpen()) return;
@@ -29,27 +36,22 @@ void MyWindow::open(const char* title, unsigned short width, unsigned short heig
     if (SDL_GL_SetSwapInterval(1) != 0) throw exception(SDL_GetError());
 }
 
-void MyWindow::close() {
-    if (!isOpen()) return;
-
-    SDL_GL_DeleteContext(_ctx);
-    _ctx = nullptr;
-
-    SDL_DestroyWindow(static_cast<SDL_Window*>(_window));
-    _window = nullptr;
-}
-
-void MyWindow::swapBuffers() const {
-    SDL_GL_SwapWindow(static_cast<SDL_Window*>(_window));
+void MyWindow::renderUI() {
+    if (gui) gui->render();  // Render the GUI
 }
 
 bool MyWindow::processEvents(IEventProcessor* event_processor) {
     SDL_Event e;
     while (SDL_PollEvent(&e)) {
         if (event_processor) event_processor->processEvent(e);
+        if (gui) gui->processEvent(e);  // Pass events to MyGUI
         switch (e.type) {
         case SDL_QUIT: close(); return false;
         }
     }
     return true;
+}
+
+void MyWindow::swapBuffers() const {
+    SDL_GL_SwapWindow(static_cast<SDL_Window*>(_window));
 }

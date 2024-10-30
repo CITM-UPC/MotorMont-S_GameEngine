@@ -6,58 +6,41 @@
 #include <imgui_impl_opengl3.h>
 
 MyGUI::MyGUI(SDL_Window* window, void* context) {
-	IMGUI_CHECKVERSION();
-	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO(); (void)io;
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-	ImGui::StyleColorsDark();
-	ImGui_ImplSDL2_InitForOpenGL(window, context);
-	ImGui_ImplOpenGL3_Init();
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+    ImGui::StyleColorsDark();
+    ImGui_ImplSDL2_InitForOpenGL(window, context);
+    ImGui_ImplOpenGL3_Init();
 }
 
 MyGUI::~MyGUI() {
-	ImGui_ImplOpenGL3_Shutdown();
-	ImGui_ImplSDL2_Shutdown();
-	ImGui::DestroyContext();
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplSDL2_Shutdown();
+    ImGui::DestroyContext();
 }
-MyGUI::MyGUI() {}
 
 void MyGUI::render() {
-	ImGui_ImplOpenGL3_NewFrame();
-	ImGui_ImplSDL2_NewFrame();
-	ImGui::NewFrame();
-	ImGui::ShowDemoWindow();
-	ImGui::Render();
-	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-}
-
-void MyGUI::processEvent(const SDL_Event& event) {
-	ImGui_ImplSDL2_ProcessEvent(&event);
-
- /*   ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();
 
-    // Begin main menu bar
+    // Simple top bar with buttons
     if (ImGui::BeginMainMenuBar()) {
-        // Create a "Help" menu
-        if (ImGui::BeginMenu("Help")) {
-            // Add "About" button
-            if (ImGui::MenuItem("About")) {
-                // Placeholder action for About button
-                // For now, this does nothing
-            }
-            ImGui::EndMenu();
-        }
+        ImGui::Button("Button1");  // Placeholder button
+        ImGui::SameLine();
+        ImGui::Button("Button2");  // Another placeholder button
+        ImGui::SameLine();
+        ImGui::Button("Button3");  // Another placeholder button
         ImGui::EndMainMenuBar();
     }
 
-    ImGui::ShowDemoWindow(); // Optional: Displays the ImGui demo window
-
     ImGui::Render();
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());*/
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
-
-
+void MyGUI::processEvent(const SDL_Event& event) {
+    ImGui_ImplSDL2_ProcessEvent(&event);
+}
