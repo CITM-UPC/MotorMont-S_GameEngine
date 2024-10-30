@@ -3,6 +3,7 @@
 #include <assimp/cimport.h>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+#include <assimp/Importer.hpp>
 
 void Mesh::load(const glm::vec3* verts, size_t num_verts, const unsigned int* indexs, size_t num_indexs) {
     _vertices.assign(verts, verts + num_verts);
@@ -71,47 +72,48 @@ void Mesh::draw() const {
 }
 
 bool Mesh::loadFromFile(const char* file_path) {
-    const aiScene* scene = aiImportFile(file_path, aiProcessPreset_TargetRealtime_MaxQuality);
-    if (scene && scene->HasMeshes()) {
-        for (unsigned int i = 0; i < scene->mNumMeshes; ++i) {
-            aiMesh* mesh = scene->mMeshes[i];
+    Assimp::Importer importer;
+    const aiScene* scene = importer.ReadFile(file_path, aiProcess_Triangulate | aiProcess_FlipUVs |
+        aiProcess_JoinIdenticalVertices | aiProcess_SortByPType | aiProcess_OptimizeMeshes);
+    if (!scene || !scene->HasMeshes()) {
+        return false;
+    }
 
-            Mesh subMesh;
+    for (unsigned int i = 0; i < scene->mNumMeshes; ++i) {
+        aiMesh* mesh = scene->mMeshes[i];
 
-            subMesh._vertices.resize(mesh->mNumVertices);
-            for (size_t j = 0; j < subMesh._vertices.size(); ++j) {
-                subMesh._vertices[j] = glm::vec3(mesh->mVertices[j].x, mesh->mVertices[j].y, mesh->mVertices[j].z);
-            }
+        Mesh subMesh;
 
-            if (mesh->HasFaces()) {
-                subMesh._indices.resize(mesh->mNumFaces * 3);
-                for (size_t j = 0; j < mesh->mNumFaces; ++j) {
-                    const aiFace& face = mesh->mFaces[j];
-                    if (face.mNumIndices == 3) {
-                        for (size_t k = 0; k < 3; ++k) {
-                            subMesh._indices[j * 3 + k] = face.mIndices[k];
-                        }
+        subMesh._vertices.resize(mesh->mNumVertices);
+        for (size_t j = 0; j < subMesh._vertices.size(); ++j) {
+            subMesh._vertices[j] = glm::vec3(mesh->mVertices[j].x, mesh->mVertices[j].y, mesh->mVertices[j].z);
+        }
+
+        if (mesh->HasFaces()) {
+            subMesh._indices.resize(mesh->mNumFaces * 3);
+            for (size_t j = 0; j < mesh->mNumFaces; ++j) {
+                const aiFace& face = mesh->mFaces[j];
+                if (face.mNumIndices == 3) {
+                    for (size_t k = 0; k < 3; ++k) {
+                        subMesh._indices[j * 3 + k] = face.mIndices[k];
                     }
                 }
             }
-
-            if (mesh->HasTextureCoords(0)) {
-                std::vector<glm::vec2> texCoords(mesh->mNumVertices);
-                for (size_t j = 0; j < mesh->mNumVertices; ++j) {
-                    texCoords[j] = glm::vec2(mesh->mTextureCoords[0][j].x, -mesh->mTextureCoords[0][j].y);
-                }
-                subMesh.loadTexCoords(texCoords.data());
-            }
-
-            subMesh._vertexBuffer.loadElements(subMesh._vertices.size(), subMesh._vertices.data());
-            subMesh._indexBuffer.loadIndices(subMesh._indices.size(), subMesh._indices.data());
-
-            subMeshes.push_back(std::move(subMesh));
         }
 
-        aiReleaseImport(scene);
-        return true;
-    }
-    return false;
-}
+        if (mesh->HasTextureCoords(0)) {
+            std::vector<glm::vec2> texCoords(mesh->mNumVertices);
+            for (size_t j = 0; j < mesh->mNumVertices; ++j) {
+                texCoords[j] = glm::vec2(mesh->mTextureCoords[0][j].x, -mesh->mTextureCoords[0][j].y);
+            }
+            subMesh.loadTexCoords(texCoords.data());
+        }
 
+        subMesh._vertexBuffer.loadElements(subMesh._vertices.size(), subMesh._vertices.data());
+        subMesh._indexBuffer.loadIndices(subMesh._indices.size(), subMesh._indices.data());
+
+        subMeshes.push_back(std::move(subMesh));
+    }
+
+    return true;
+}

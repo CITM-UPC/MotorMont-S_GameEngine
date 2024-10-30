@@ -31,5 +31,6 @@ public:
     void loadNormals(const glm::vec3* normals);
     void loadColors(const glm::u8vec3* colors);
     void draw() const;
-    bool loadFromFile(const char* file_path);
+
+    bool loadFromFile(const char* file_path);  // Ahora es la única función de carga en Mesh
 };
