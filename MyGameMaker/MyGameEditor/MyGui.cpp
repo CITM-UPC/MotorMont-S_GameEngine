@@ -9,14 +9,30 @@ MyGUI::MyGUI(SDL_Window* window, void* context) {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Habilitar controles de teclado
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Habilitar controles de gamepad
     ImGui::StyleColorsDark();
+
     ImGui_ImplSDL2_InitForOpenGL(window, context);
     ImGui_ImplOpenGL3_Init();
 }
 
 MyGUI::~MyGUI() {
+    shutdown(); // Asegúrate de liberar recursos adecuadamente
+}
+
+void MyGUI::initialize() {
+    // Inicializar contexto de ImGui y configuraciones adicionales aquí si es necesario
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Habilitar controles de teclado
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Habilitar controles de gamepad
+    ImGui::StyleColorsDark();
+    // Código adicional de inicialización puede ir aquí
+}
+
+void MyGUI::shutdown() {
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplSDL2_Shutdown();
     ImGui::DestroyContext();
@@ -26,17 +42,7 @@ void MyGUI::render() {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();
-
-    // Simple top bar with buttons
-    if (ImGui::BeginMainMenuBar()) {
-        ImGui::Button("Button1");  // Placeholder button
-        ImGui::SameLine();
-        ImGui::Button("Button2");  // Another placeholder button
-        ImGui::SameLine();
-        ImGui::Button("Button3");  // Another placeholder button
-        ImGui::EndMainMenuBar();
-    }
-
+    ImGui::ShowDemoWindow(); // Ventana de demostración; puede modificarse según sea necesario
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }

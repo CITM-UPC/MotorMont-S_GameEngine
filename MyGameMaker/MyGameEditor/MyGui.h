@@ -1,18 +1,21 @@
-// MyGui.h
-
 #pragma once
 
-#include "../MyGameEngine/MyWindow.h"  // Include MyWindow.h for IEventProcessor
+#include <SDL2/SDL.h> // Incluye SDL para SDL_Event
+#include <imgui.h>
+#include "../MyGameEngine/MyWindow.h"
 
-class MyGUI : public IEventProcessor {
+class MyGUI : public IEventProcessor
+{
 public:
-    MyGUI();
     MyGUI(SDL_Window* window, void* context);
-    MyGUI(MyGUI&&) noexcept = delete;
-    MyGUI(const MyGUI&) = delete;
-    MyGUI& operator=(const MyGUI&) = delete;
+    MyGUI(MyGUI&&) noexcept = delete; 
+    MyGUI(const MyGUI&) = delete;      
+    MyGUI& operator=(const MyGUI&) = delete; 
     ~MyGUI();
 
-    void render();
-    void processEvent(const SDL_Event& event) override;  // Override is valid
+    void initialize(); 
+    void shutdown();   
+    void render();     
+
+    void processEvent(const SDL_Event& event) override;
 };

@@ -16,6 +16,7 @@
 #include "MyGameEngine/Mesh.h"
 #include "MyGameEngine/GraphicObject.h"
 #include "MyGameEngine/Image.h"
+#include "MyGUI.h" // Include your GUI header
 
 using namespace std;
 
@@ -35,6 +36,9 @@ static bool mouseButtonPressed = false;
 static bool middleMouseButtonPressed = false;  // New flag for middle mouse button
 static int lastMouseX, lastMouseY;  // To store previous mouse position
 glm::vec3 localRight(1.0f, 0.0f, 0.0f);
+
+// GUI variable as a pointer
+MyGUI* gui; // Use a pointer for the GUI class
 
 static void checkGLError(const std::string& message) {
     GLenum err;
@@ -241,12 +245,17 @@ int main(int argc, char* argv[]) {
         std::cerr << "Failed to load BakerHouse model" << std::endl;
     }
 
+    // Initialize GUI here
+    gui = new MyGUI(window, glContext); // Create your GUI instance
+    gui->initialize(); // Call initialize if your GUI has one
+
     bool running = true;
     while (running) {
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) running = false;
             handleInput(event);
+            gui->processEvent(event); // Process GUI events
         }
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -261,9 +270,15 @@ int main(int argc, char* argv[]) {
         drawFloorGrid(16, 0.25);
         scene.draw();
 
+        gui->render(); // Render the GUI
+
         SDL_GL_SwapWindow(window);
         updateMovement();
     }
+
+    // Clean up GUI resources if necessary
+    gui->shutdown(); // Call shutdown if your GUI has one
+    delete gui; // Delete the GUI instance to avoid memory leak
 
     SDL_GL_DeleteContext(glContext);
     SDL_DestroyWindow(window);
