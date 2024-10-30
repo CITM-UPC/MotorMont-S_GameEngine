@@ -3,6 +3,7 @@
 
 #include <GL/glew.h>
 #include <SDL2/SDL.h>
+#include <chrono>
 #include <SDL2/SDL_opengl.h>
 #include <iostream>
 #include <unordered_map>
@@ -75,7 +76,7 @@ static void drawAxis(double size) {
 }
 
 static void drawFloorGrid(int size, double step) {
-    glColor3ub(137, 207, 240);
+    glColor3ub(0, 163, 108);
     glBegin(GL_LINES);
     for (double i = -size; i <= size; i += step) {
         glVertex3d(i, 0, -size);
@@ -203,6 +204,9 @@ void setupOpenGL() {
 
     loadTexture();
 }
+
+static const auto FPS = 60;
+static const auto FRAME_DT = 1.0s / FPS;
 
 int main(int argc, char* argv[]) {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
