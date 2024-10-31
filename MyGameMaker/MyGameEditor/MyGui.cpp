@@ -18,7 +18,10 @@ bool showInspector = true;
 bool showAbout = false;
 
 MyGUI::MyGUI(SDL_Window* window, void* context)
-    : fps_history(100, 0.0f), fps_index(0), current_fps(0.0f), last_time(std::chrono::steady_clock::now()),
+    : fps_history(100, 0.0f), memory_usage_history(100, 0.0f),
+    fps_index(0), memory_index(0),
+    current_fps(0.0f), current_memory_usage(0.0f),
+    last_time(std::chrono::steady_clock::now()),
     selectedGameObjectIndex(-1)
 {
     IMGUI_CHECKVERSION();
@@ -51,12 +54,29 @@ void MyGUI::shutdown() {
     ImGui::DestroyContext();
 }
 
+void MyGUI::updateMemoryUsage() {
+#ifdef __linux__
+    struct sysinfo memInfo;
+    sysinfo(&memInfo);
+    long long totalMemory = memInfo.totalram;
+    totalMemory *= memInfo.mem_unit;
+    long long freeMemory = memInfo.freeram;
+    freeMemory *= memInfo.mem_unit;
+    current_memory_usage = (float)(totalMemory - freeMemory) / (1024.0f * 1024.0f); // Convertimos a MB
+
+#elif defined(_WIN32)
+    MEMORYSTATUSEX memInfo;
+    memInfo.dwLength = sizeof(MEMORYSTATUSEX);
+    GlobalMemoryStatusEx(&memInfo);
+    current_memory_usage = (float)(memInfo.ullTotalPhys - memInfo.ullAvailPhys) / (1024.0f * 1024.0f); // Convertimos a MB
+#endif
+
+    memory_usage_history[memory_index] = current_memory_usage;
+    memory_index = (memory_index + 1) % memory_usage_history.size();
+}
+
+
 void MyGUI::updateFPS() {
-    frame_counter++;
-    if (frame_counter < 100) {
-        return;
-    }
-    frame_counter = 0;
 
     auto current_time = std::chrono::steady_clock::now();
     std::chrono::duration<float> elapsed_seconds = current_time - last_time;
@@ -64,9 +84,6 @@ void MyGUI::updateFPS() {
     float delta_time = elapsed_seconds.count();
     current_fps = 1.0f / delta_time;
 
-    if (current_fps > 10000.0f) {
-        current_fps = 10000.0f;
-    }
 
     fps_history[fps_index] = current_fps;
     fps_index = (fps_index + 1) % fps_history.size();
@@ -149,6 +166,7 @@ void MyGUI::render() {
 
     if (showConfiguration) {
         updateFPS();
+		updateMemoryUsage();
         ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x * 0.8f, topBarHeight), ImGuiCond_Always);
         ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x * 0.2f, ImGui::GetIO().DisplaySize.y * 0.5f), ImGuiCond_Always);
         ImGui::Begin("Configuration");
@@ -157,6 +175,11 @@ void MyGUI::render() {
         float max_fps = *std::max_element(fps_history.begin(), fps_history.end());
         float graph_max_fps = max_fps + 10.0f;
         ImGui::PlotLines("##FPS", fps_history.data(), fps_history.size(), fps_index, nullptr, 0.0f, graph_max_fps, ImVec2(0, 80));
+
+        ImGui::Text("Memory Usage (MB): %.1f", current_memory_usage);
+        float max_memory = *std::max_element(memory_usage_history.begin(), memory_usage_history.end());
+        float graph_max_memory = max_memory + 10.0f;
+        ImGui::PlotLines("##MemoryUsage", memory_usage_history.data(), memory_usage_history.size(), memory_index, nullptr, 0.0f, graph_max_memory, ImVec2(0, 80));
 
         ImGui::Text("Renderer Configuration:");
         ImGui::Text("Window Configuration:");

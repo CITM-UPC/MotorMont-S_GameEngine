@@ -22,18 +22,21 @@ public:
     void shutdown();
     void render();
     void processEvent(const SDL_Event& event) override;
-    void addConsoleMessage(const std::string& message); // Método para añadir mensajes
+    void addConsoleMessage(const std::string& message);
 
 private:
     void updateFPS();
+    void updateMemoryUsage();
     std::vector<float> fps_history;
+    std::vector<float> memory_usage_history;
     int fps_index;
+    int memory_index;
     int frame_counter;
     float current_fps;
+    float current_memory_usage;
 
-    std::chrono::steady_clock::time_point last_time;  // Last recorded time for FPS calculation
+    std::chrono::steady_clock::time_point last_time;
 
-    // Configuration variables
     struct RendererConfig {
         // Add renderer-specific configurations here
     } rendererConfig;
