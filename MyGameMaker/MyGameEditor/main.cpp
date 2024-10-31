@@ -18,6 +18,8 @@
 #include "MyGameEngine/GraphicObject.h"
 #include "MyGameEngine/Image.h"
 #include "MyGUI.h" // Include your GUI header
+#include "MyGameEngine/BoundingBox.h"
+#include "MyGameEngine/Mesh.h"
 
 using namespace std;
 
@@ -38,8 +40,12 @@ static bool middleMouseButtonPressed = false;  // New flag for middle mouse butt
 static int lastMouseX, lastMouseY;  // To store previous mouse position
 glm::vec3 localRight(1.0f, 0.0f, 0.0f);
 
-// GUI variable as a pointer
-MyGUI* gui; // Use a pointer for the GUI class
+// Variables y configuraciones globales
+GraphicObject* selectedObject = nullptr;
+BoundingBox selectedBoundingBox;
+MyGUI* gui;
+
+
 
 static void checkGLError(const std::string& message) {
     GLenum err;
@@ -205,6 +211,67 @@ void setupOpenGL() {
     loadTexture();
 }
 
+glm::vec3 ConvertMouseToWorldCoords(int mouse_x, int mouse_y, int screen_width, int screen_height) {
+    float ndc_x = (2.0f * mouse_x) / screen_width - 1.0f;
+    float ndc_y = 1.0f - (2.0f * mouse_y) / screen_height;
+    glm::vec4 clip_coords = glm::vec4(ndc_x, ndc_y, -1.0f, 1.0f);
+
+    glm::mat4 projection_matrix = camera.projection();
+    glm::vec4 view_coords = glm::inverse(projection_matrix) * clip_coords;
+    view_coords = glm::vec4(view_coords.x, view_coords.y, -1.0f, 0.0f);
+
+    glm::mat4 view_matrix = camera.view();
+    glm::vec4 world_coords = glm::inverse(view_matrix) * view_coords;
+
+    return glm::vec3(world_coords);
+}
+
+glm::vec3 GetMousePickDir(int mouse_x, int mouse_y, int screen_width, int screen_height) {
+    glm::vec3 window_coords = glm::vec3(mouse_x, screen_height - mouse_y, 0.0f);
+    glm::mat4 view_matrix = camera.view();
+    glm::mat4 projection_matrix = camera.projection();
+    glm::vec4 viewport = glm::vec4(0, 0, screen_width, screen_height);
+
+    glm::vec3 v0 = glm::unProject(window_coords, view_matrix, projection_matrix, viewport);
+    glm::vec3 v1 = glm::unProject(glm::vec3(window_coords.x, window_coords.y, 1.0f), view_matrix, projection_matrix, viewport);
+    return glm::normalize(v1 - v0);
+}   
+
+
+
+bool CheckRayAABBCollision(const glm::vec3& rayOrigin, const glm::vec3& rayDir, const BoundingBox& bBox) {
+    float tmin = (bBox.min.x - rayOrigin.x) / rayDir.x;
+    float tmax = (bBox.max.x - rayOrigin.x) / rayDir.x;
+    if (tmin > tmax) std::swap(tmin, tmax);
+
+    float tymin = (bBox.min.y - rayOrigin.y) / rayDir.y;
+    float tymax = (bBox.max.y - rayOrigin.y) / rayDir.y;
+    if (tymin > tymax) std::swap(tymin, tymax);
+
+    if ((tmin > tymax) || (tymin > tmax)) return false;
+    if (tymin > tmin) tmin = tymin;
+    if (tymax < tmax) tmax = tymax;
+
+    float tzmin = (bBox.min.z - rayOrigin.z) / rayDir.z;
+    float tzmax = (bBox.max.z - rayOrigin.z) / rayDir.z;
+    if (tzmin > tzmax) std::swap(tzmin, tzmax);
+
+    return !(tmin > tzmax || tzmin > tmax);
+}
+void handleMouseClick(int mouseX, int mouseY, int screenWidth, int screenHeight) {
+    glm::vec3 rayOrigin = ConvertMouseToWorldCoords(mouseX, mouseY, screenWidth, screenHeight);
+    glm::vec3 rayDir = GetMousePickDir(mouseX, mouseY, screenWidth, screenHeight);
+
+    if (selectedObject && selectedObject->hasMesh()) {
+        BoundingBox bbox = selectedObject->mesh().boundingBox();
+        bbox = selectedObject->transform().mat() * bbox;
+
+        if (CheckRayAABBCollision(rayOrigin, rayDir, bbox)) {
+            selectedObject->setSelected(true);  // Marca el objeto como seleccionado para resaltarlo
+        }
+    }
+}
+
 static const auto FPS = 60;
 static const auto FRAME_DT = 1.0s / FPS;
 
@@ -249,17 +316,20 @@ int main(int argc, char* argv[]) {
         std::cerr << "Failed to load BakerHouse model" << std::endl;
     }
 
-    // Initialize GUI here
-    gui = new MyGUI(window, glContext); // Create your GUI instance
-    gui->initialize(); // Call initialize if your GUI has one
+    // Inicializar GUI
+    gui = new MyGUI(window, glContext);
+    gui->initialize();
 
     bool running = true;
     while (running) {
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) running = false;
-            handleInput(event);
-            gui->processEvent(event); // Process GUI events
+
+            // Detectar clic izquierdo para la selección del objeto
+            if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
+                handleMouseClick(event.button.x, event.button.y, 1280, 720);
+            }
         }
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -274,15 +344,19 @@ int main(int argc, char* argv[]) {
         drawFloorGrid(16, 0.25);
         scene.draw();
 
-        gui->render(); // Render the GUI
+        // Dibuja BoundingBox en verde si el objeto está seleccionado
+        if (selectedObject && selectedObject->isSelected()) {
+            glColor3f(0.0f, 1.0f, 0.0f); // Verde
+            Mesh::drawBoundingBox(selectedObject->mesh().boundingBox());
+        }
 
+        gui->render();
         SDL_GL_SwapWindow(window);
         updateMovement();
     }
 
-    // Clean up GUI resources if necessary
-    gui->shutdown(); // Call shutdown if your GUI has one
-    delete gui; // Delete the GUI instance to avoid memory leak
+    gui->shutdown();
+    delete gui;
 
     SDL_GL_DeleteContext(glContext);
     SDL_DestroyWindow(window);

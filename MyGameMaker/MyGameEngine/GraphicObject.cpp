@@ -15,6 +15,11 @@ void GraphicObject::draw() const {
 
     if (hasTexture()) glDisable(GL_TEXTURE_2D);
 
+    if (selected && hasMesh()) {  // Dibuja el BoundingBox en verde si está seleccionado
+        glColor3f(0.0f, 1.0f, 0.0f);  // Verde
+        Mesh::drawBoundingBox(_mesh_ptr->boundingBox());
+    }
+
     for (const auto& child : children()) child.draw();
 
     glPopMatrix();
