@@ -188,6 +188,24 @@ void MyGUI::render() {
                 ImGui::Text("Size: %dx%d", selectedObject.textureWidth, selectedObject.textureHeight);
                 ImGui::Checkbox("Use Checker Texture", &selectedObject.useCheckerTexture);
             }
+            // Texture Section
+            ImGui::Separator();
+            ImGui::Text("Texture");
+
+            // Placeholder values for future texture properties
+            ImGui::Text("Texture Path: X");
+            ImGui::Text("Texture Width: X");
+            ImGui::Text("Texture Height: X");
+            ImGui::Checkbox("Use Checker Texture", &selectedObject.useCheckerTexture);
+
+
+            // Normals Section
+            ImGui::Separator();
+            ImGui::Text("Normals");
+            ImGui::Checkbox("Display Normals", &selectedObject.displayTriangleNormals);
+
+
+
         }
         ImGui::End();
     }

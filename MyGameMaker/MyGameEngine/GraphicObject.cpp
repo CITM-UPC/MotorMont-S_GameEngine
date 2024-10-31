@@ -15,9 +15,14 @@ void GraphicObject::draw() const {
 
     if (hasTexture()) glDisable(GL_TEXTURE_2D);
 
-    for (const auto& child : children()) child.draw();
+    for(const auto& child : children()){
+        child.draw();
+    }
+
+   // for (const auto& child : children()) child.draw();
 
     glPopMatrix();
+
 }
 
 BoundingBox GraphicObject::localBoundingBox() const {

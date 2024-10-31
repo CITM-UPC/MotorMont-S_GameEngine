@@ -22,8 +22,12 @@
 #include "../MyGameEngine/App.h"
 #include "../MyGameEngine/GameObject.h"
 #include <filesystem>
+#include <vector>
+#include <filesystem>
+#define ASSETS_PATH "Assets\\"
 
 
+namespace fs = std::filesystem;
 using namespace std;
 
 static bool paused = true;
@@ -42,6 +46,8 @@ static bool mouseButtonPressed = false;
 static bool middleMouseButtonPressed = false;  // New flag for middle mouse button
 static int lastMouseX, lastMouseY;  // To store previous mouse position
 glm::vec3 localRight(1.0f, 0.0f, 0.0f);
+std::vector<Mesh*> meshes;
+std::vector<GraphicObject*> gameObjects;
 
 // GUI variable as a pointer
 MyGUI* gui; // Use a pointer for the GUI class
@@ -125,6 +131,25 @@ void updateMovement() {
         direction = glm::normalize(direction) * currentSpeed;
         camera.transform().translate(direction);
     }
+}
+
+std::string SaveFBX(const std::string& sourceFilePath) {
+
+
+    std::string fileNameExt = sourceFilePath.substr(sourceFilePath.find_last_of("/\\") + 1);
+	fs::path assetsDir = fs::path(ASSETS_PATH) / "Meshes" / fileNameExt;
+
+    try {
+
+        std::filesystem::copy(sourceFilePath, assetsDir, std::filesystem::copy_options::overwrite_existing);
+
+
+    }
+    catch (std::filesystem::filesystem_error& e) {
+        std::cerr << "Error copying file: " << e.what() << std::endl;
+    }
+    std::cout << (assetsDir.string()).c_str();
+    return assetsDir.string();
 }
 
 
@@ -232,6 +257,16 @@ void handleInput(SDL_Event& event) {
         // Ensure the last dot position is after the last slash to correctly handle extensions
         if (lastDotPos != std::string::npos && lastDotPos > lastSlashPos) {
             std::string fbxName = fileDir.substr(lastSlashPos + 1, lastDotPos - lastSlashPos - 1);
+            std::cout << fileDir;
+            Mesh mesh;
+			mesh.loadFromFile(SaveFBX(fileDir).c_str());
+			//meshes.push_back(mesh);
+			GraphicObject* go = new GraphicObject();
+
+            auto& mesh_object = scene.emplaceChild();
+            mesh_object.setMesh(std::make_shared<Mesh>(std::move(mesh)));
+            mesh_object.setTextureImage(image);
+            GameObject gameobject("House"); 
         }
         else {
             std::string fbxName = fileNameExt;  // Fallback in case there's no extension
@@ -306,13 +341,11 @@ int main(int argc, char* argv[]) {
         GameObject gameobject("House");
        // gameobject.setMesh(&mesh);
         gui->gameObjects.push_back(gameobject);
-
+   
     }
     else {
         std::cerr << "Failed to load BakerHouse model" << std::endl;
     }
-
-    // Initialize GUI here
    
 
     bool running = true;
@@ -335,6 +368,10 @@ int main(int argc, char* argv[]) {
         drawAxis(1.0);
         drawFloorGrid(16, 0.25);
         scene.draw();
+		for (int i = 0; i < meshes.size(); i++)
+		{
+			meshes[i]->draw();
+		}
 
         gui->render(); // Render the GUI
 
