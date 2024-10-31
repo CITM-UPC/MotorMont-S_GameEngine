@@ -1,6 +1,7 @@
 #include "MyGUI.h"
 #include <SDL2/SDL_video.h>
 #include <SDL2/SDL_opengl.h>
+#include <IL/il.h>
 #include <imgui.h>
 #include <imgui_impl_sdl2.h>
 #include <imgui_impl_opengl3.h>
@@ -92,7 +93,7 @@ void MyGUI::updateFPS() {
 }
 
 void MyGUI::addConsoleMessage(const std::string& message) {
-    if (consoleMessages.size() > 100) { // Limitar el número de mensajes
+    if (consoleMessages.size() > 100) {
         consoleMessages.pop_front();
     }
     consoleMessages.push_back(message);
@@ -151,53 +152,15 @@ void MyGUI::render() {
     }
 
     float topBarHeight = ImGui::GetFrameHeight();
-
-
-
-    if (showConsole) {
-        ImGui::SetNextWindowPos(ImVec2(0, ImGui::GetIO().DisplaySize.y * 0.75f + topBarHeight), ImGuiCond_Always);
-        ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x * 0.2f, ImGui::GetIO().DisplaySize.y * 0.25f), ImGuiCond_Always);
-        ImGui::Begin("Console");
-        for (const auto& msg : consoleMessages) {
-            ImGui::TextUnformatted(msg.c_str());
-        }
-        ImGui::End();
-    }
-
-    if (showConfiguration) {
-        updateFPS();
-		updateMemoryUsage();
-        ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x * 0.8f, topBarHeight), ImGuiCond_Always);
-        ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x * 0.2f, ImGui::GetIO().DisplaySize.y * 0.5f), ImGuiCond_Always);
-        ImGui::Begin("Configuration");
-        ImGui::Text("Frames per Second (FPS): %.1f", current_fps);
-
-        float max_fps = *std::max_element(fps_history.begin(), fps_history.end());
-        float graph_max_fps = max_fps + 10.0f;
-        ImGui::PlotLines("##FPS", fps_history.data(), fps_history.size(), fps_index, nullptr, 0.0f, graph_max_fps, ImVec2(0, 80));
-
-        ImGui::Text("Memory Usage (MB): %.1f", current_memory_usage);
-        float max_memory = *std::max_element(memory_usage_history.begin(), memory_usage_history.end());
-        float graph_max_memory = max_memory + 10.0f;
-        ImGui::PlotLines("##MemoryUsage", memory_usage_history.data(), memory_usage_history.size(), memory_index, nullptr, 0.0f, graph_max_memory, ImVec2(0, 80));
-
-        ImGui::Text("Renderer Configuration:");
-        ImGui::Text("Window Configuration:");
-        ImGui::Text("Input Configuration:");
-        ImGui::Text("Texture Configuration:");
-        ImGui::End();
-    }
+    float screenHeight = ImGui::GetIO().DisplaySize.y;
 
     if (showInspector) {
         ImGui::SetNextWindowPos(ImVec2(0, topBarHeight), ImGuiCond_Always);
-        ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x * 0.2f, ImGui::GetIO().DisplaySize.y * 0.75f), ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x * 0.2f, screenHeight * 0.75f * 0.8f), ImGuiCond_Always);
         ImGui::Begin("Inspector");
 
-        // Display details of the selected GameObject if any is selected
         if (selectedGameObjectIndex != -1 && selectedGameObjectIndex < gameObjects.size()) {
             GameObject& selectedObject = gameObjects[selectedGameObjectIndex];
-
-            // Editable transform information
             ImGui::Text("Transform");
             ImGui::DragFloat3("Position", &selectedObject.position.x, 0.1f);
             ImGui::DragFloat3("Rotation", &selectedObject.rotation.x, 0.1f);
@@ -211,17 +174,13 @@ void MyGUI::render() {
 
             if (selectedObject.hasTexture) {
                 ImGui::Text("Texture");
-
-                // Define a fixed-size buffer for InputText to ensure safe string handling
                 char texturePathBuffer[256];
-#if defined(_MSC_VER) // Microsoft compiler, using strncpy_s for safety
+#if defined(_MSC_VER)
                 strncpy_s(texturePathBuffer, sizeof(texturePathBuffer), selectedObject.texturePath.c_str(), _TRUNCATE);
-#else // Non-MSVC compilers, using strncpy with manual null-termination
+#else
                 strncpy(texturePathBuffer, selectedObject.texturePath.c_str(), sizeof(texturePathBuffer) - 1);
                 texturePathBuffer[sizeof(texturePathBuffer) - 1] = '\0';
 #endif
-
-                // InputText handling, updating texturePath if edited
                 if (ImGui::InputText("Path", texturePathBuffer, sizeof(texturePathBuffer))) {
                     selectedObject.texturePath = texturePathBuffer;
                 }
@@ -234,11 +193,11 @@ void MyGUI::render() {
     }
 
     if (showHierarchy) {
-        ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x * 0.8f, ImGui::GetIO().DisplaySize.y * 0.5f + topBarHeight), ImGuiCond_Always);
-        ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x * 0.2f, ImGui::GetIO().DisplaySize.y * 0.5f), ImGuiCond_Always);
+        float inspectorHeight = screenHeight * 0.75f * 0.8f;
+        ImGui::SetNextWindowPos(ImVec2(0, topBarHeight + inspectorHeight), ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x * 0.2f, screenHeight * 0.25f * 1.6f), ImGuiCond_Always);
         ImGui::Begin("Hierarchy");
 
-        // Display all GameObjects in the hierarchy list
         for (int i = 0; i < gameObjects.size(); ++i) {
             if (ImGui::Selectable(gameObjects[i].name.c_str(), selectedGameObjectIndex == i)) {
                 selectedGameObjectIndex = i;
@@ -247,9 +206,56 @@ void MyGUI::render() {
         ImGui::End();
     }
 
+    if (showConfiguration) {
+        updateFPS();
+        updateMemoryUsage();
+        ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x * 0.8f, topBarHeight), ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x * 0.2f, screenHeight * 0.5f * 1.1f), ImGuiCond_Always);
+        ImGui::Begin("Configuration");
+
+        ImGui::Text("Frames per Second (FPS): %.1f", current_fps);
+        float max_fps = *std::max_element(fps_history.begin(), fps_history.end());
+        float graph_max_fps = max_fps + 10.0f;
+        ImGui::PlotLines("##FPS", fps_history.data(), fps_history.size(), fps_index, nullptr, 0.0f, graph_max_fps, ImVec2(0, 80));
+
+        ImGui::Text("Memory Usage (MB): %.1f", current_memory_usage);
+        float max_memory = *std::max_element(memory_usage_history.begin(), memory_usage_history.end());
+        float graph_max_memory = max_memory + 10.0f;
+        ImGui::PlotLines("##MemoryUsage", memory_usage_history.data(), memory_usage_history.size(), memory_index, nullptr, 0.0f, graph_max_memory, ImVec2(0, 80));
+
+        ImGui::Text("Hardware & Software Information:");
+
+        SDL_version compiled;
+        SDL_VERSION(&compiled);
+        ImGui::Text("SDL Version: %d.%d.%d", compiled.major, compiled.minor, compiled.patch);
+
+        const GLubyte* glVersion = glGetString(GL_VERSION);
+        ImGui::Text("OpenGL Version: %s", glVersion);
+
+        ImGui::Text("DevIL Version: %d.%d.%d", IL_VERSION / 100, (IL_VERSION / 10) % 10, IL_VERSION % 10);
+
+        ImGui::Text("Renderer Configuration:");
+        ImGui::Text("Window Configuration:");
+        ImGui::Text("Input Configuration:");
+        ImGui::Text("Texture Configuration:");
+        ImGui::End();
+    }
+
+    if (showConsole) {
+        float configurationHeight = screenHeight * 0.5f * 1.1f;
+        ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x * 0.8f, topBarHeight + configurationHeight), ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x * 0.2f, screenHeight * 0.5f * 0.9f), ImGuiCond_Always);
+        ImGui::Begin("Console");
+        for (const auto& msg : consoleMessages) {
+            ImGui::TextUnformatted(msg.c_str());
+        }
+        ImGui::End();
+    }
+
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
+
 
 void MyGUI::processEvent(const SDL_Event& event) {
     ImGui_ImplSDL2_ProcessEvent(&event);
