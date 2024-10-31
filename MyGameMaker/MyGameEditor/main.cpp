@@ -21,6 +21,7 @@
 #include <sstream> // Para formatear el mensaje
 #include "../MyGameEngine/App.h"
 #include "../MyGameEngine/GameObject.h"
+#include <filesystem>
 
 
 using namespace std;
@@ -126,6 +127,7 @@ void updateMovement() {
     }
 }
 
+
 void handleInput(SDL_Event& event) {
     switch (event.type) {
     case SDL_KEYDOWN:
@@ -218,10 +220,27 @@ void handleInput(SDL_Event& event) {
 
         break;
 
-        case SDL_DROPFILE:
-          
+    case SDL_DROPFILE:
+    {
+        std::string fileDir = event.drop.file;
+        std::string fileNameExt = fileDir.substr(fileDir.find_last_of("/\\") + 1);
 
+        // Get the file name without extension
+        size_t lastSlashPos = fileDir.find_last_of("/\\");
+        size_t lastDotPos = fileDir.find_last_of('.');
+
+        // Ensure the last dot position is after the last slash to correctly handle extensions
+        if (lastDotPos != std::string::npos && lastDotPos > lastSlashPos) {
+            std::string fbxName = fileDir.substr(lastSlashPos + 1, lastDotPos - lastSlashPos - 1);
+        }
+        else {
+            std::string fbxName = fileNameExt;  // Fallback in case there's no extension
+        }
+
+        SDL_free(event.drop.file);  // Free the allocated memory for the file path
         break;
+    }
+
 
     default:
         break;
@@ -284,7 +303,7 @@ int main(int argc, char* argv[]) {
         auto& mesh_object = scene.emplaceChild();
         mesh_object.setMesh(std::make_shared<Mesh>(std::move(mesh)));
         mesh_object.setTextureImage(image);
-        GameObject gameobject("sergiguei:)");
+        GameObject gameobject("House");
        // gameobject.setMesh(&mesh);
         gui->gameObjects.push_back(gameobject);
 
