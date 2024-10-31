@@ -87,9 +87,22 @@ static void drawFloorGrid(int size, double step) {
     glEnd();
 }
 
-// Update movement based on active keys and mouse button state
+glm::vec3 screenToWorldRay(int mouseX, int mouseY, int screenWidth, int screenHeight, const Camera& camera) {
+    float x = (2.0f * mouseX) / screenWidth - 1.0f;
+    float y = 1.0f - (2.0f * mouseY) / screenHeight;
+
+    glm::vec4 rayClip(x, y, -1.0f, 1.0f);
+    glm::vec4 rayEye = glm::inverse(camera.projection()) * rayClip;
+    rayEye.z = -1.0f;
+    rayEye.w = 0.0f;
+
+    glm::vec3 rayWorld = glm::normalize(glm::vec3(glm::inverse(camera.view()) * rayEye));
+    return rayWorld;
+}
+
+
 void updateMovement() {
-    if (!mouseButtonPressed && !middleMouseButtonPressed) return;  // Only move when right or middle mouse button is pressed
+    if (!mouseButtonPressed && !middleMouseButtonPressed) return;
 
     float currentSpeed = shiftPressed ? movementSpeed * 2 : movementSpeed;
 
@@ -126,9 +139,19 @@ void handleInput(SDL_Event& event) {
             mouseButtonPressed = true;
             SDL_GetMouseState(&lastMouseX, &lastMouseY);
         }
-        else if (event.button.button == SDL_BUTTON_MIDDLE) {  // Detect middle mouse button
+        else if (event.button.button == SDL_BUTTON_MIDDLE) {
             middleMouseButtonPressed = true;
             SDL_GetMouseState(&lastMouseX, &lastMouseY);
+        }
+        if (event.button.button == SDL_BUTTON_LEFT) {
+            int mouseX, mouseY;
+            SDL_GetMouseState(&mouseX, &mouseY);
+
+            glm::vec3 rayDirection = screenToWorldRay(mouseX, mouseY, 1280, 720, camera);
+            glm::vec3 rayOrigin = camera.transform().pos();
+
+            std::cout << "Ray casted from: " << rayOrigin.x << ", " << rayOrigin.y << ", " << rayOrigin.z << " in direction: "
+                << rayDirection.x << ", " << rayDirection.y << ", " << rayDirection.z << std::endl;
         }
         updateMovement();
         break;
