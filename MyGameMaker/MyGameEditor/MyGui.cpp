@@ -4,11 +4,12 @@
 #include <imgui.h>
 #include <imgui_impl_sdl2.h>
 #include <imgui_impl_opengl3.h>
+#include "../MyGameEngine/GameObject.h"
 #include <vector>
 #include <chrono>
 #include <algorithm>
-#include <SDL2/SDL.h>  
-#include <cstdlib>     
+#include <SDL2/SDL.h>
+#include <cstdlib>
 
 bool showConsole = true;
 bool showHierarchy = true;
@@ -85,7 +86,6 @@ void MyGUI::render() {
                 exit(0);
             }
             if (ImGui::MenuItem("Visit GitHub")) {
-
 #if defined(_WIN32) || defined(_WIN64)
                 system("start https://github.com/CITM-UPC/MotorMont-S_GameEngine");
 #elif defined(__APPLE__)
@@ -95,9 +95,8 @@ void MyGUI::render() {
 #endif
             }
             if (ImGui::MenuItem("About")) {
-                showAbout = true; 
+                showAbout = true;
             }
-
 
             ImGui::Separator();
             ImGui::MenuItem("Show Console", nullptr, &showConsole);
@@ -111,7 +110,6 @@ void MyGUI::render() {
     }
 
     if (showAbout) {
-
         ImVec2 windowPos = ImVec2(ImGui::GetIO().DisplaySize.x * 0.5f - 150, ImGui::GetIO().DisplaySize.y * 0.5f - 50);
         ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
         ImGui::SetNextWindowSize(ImVec2(300, 100), ImGuiCond_Always);
@@ -159,12 +157,16 @@ void MyGUI::render() {
         ImGui::SetNextWindowPos(ImVec2(0, topBarHeight), ImGuiCond_Always);
         ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x * 0.2f, ImGui::GetIO().DisplaySize.y * 0.75f), ImGuiCond_Always);
         ImGui::Begin("Inspector");
+
+        // Display details of the selected GameObject if any is selected
         if (selectedGameObjectIndex != -1 && selectedGameObjectIndex < gameObjects.size()) {
             GameObject& selectedObject = gameObjects[selectedGameObjectIndex];
+
+            // Editable transform information
             ImGui::Text("Transform");
-            ImGui::Text("Position: (%.1f, %.1f, %.1f)", selectedObject.position.x, selectedObject.position.y, selectedObject.position.z);
-            ImGui::Text("Rotation: (%.1f, %.1f, %.1f)", selectedObject.rotation.x, selectedObject.rotation.y, selectedObject.rotation.z);
-            ImGui::Text("Scale: (%.1f, %.1f, %.1f)", selectedObject.scale.x, selectedObject.scale.y, selectedObject.scale.z);
+            ImGui::DragFloat3("Position", &selectedObject.position.x, 0.1f);
+            ImGui::DragFloat3("Rotation", &selectedObject.rotation.x, 0.1f);
+            ImGui::DragFloat3("Scale", &selectedObject.scale.x, 0.1f, 0.1f, 10.0f);
 
             if (selectedObject.hasMesh) {
                 ImGui::Text("Mesh");
@@ -174,7 +176,21 @@ void MyGUI::render() {
 
             if (selectedObject.hasTexture) {
                 ImGui::Text("Texture");
-                ImGui::Text("Path: %s", selectedObject.texturePath.c_str());
+
+                // Define a fixed-size buffer for InputText to ensure safe string handling
+                char texturePathBuffer[256];
+#if defined(_MSC_VER) // Microsoft compiler, using strncpy_s for safety
+                strncpy_s(texturePathBuffer, sizeof(texturePathBuffer), selectedObject.texturePath.c_str(), _TRUNCATE);
+#else // Non-MSVC compilers, using strncpy with manual null-termination
+                strncpy(texturePathBuffer, selectedObject.texturePath.c_str(), sizeof(texturePathBuffer) - 1);
+                texturePathBuffer[sizeof(texturePathBuffer) - 1] = '\0';
+#endif
+
+                // InputText handling, updating texturePath if edited
+                if (ImGui::InputText("Path", texturePathBuffer, sizeof(texturePathBuffer))) {
+                    selectedObject.texturePath = texturePathBuffer;
+                }
+
                 ImGui::Text("Size: %dx%d", selectedObject.textureWidth, selectedObject.textureHeight);
                 ImGui::Checkbox("Use Checker Texture", &selectedObject.useCheckerTexture);
             }
@@ -186,6 +202,8 @@ void MyGUI::render() {
         ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x * 0.8f, ImGui::GetIO().DisplaySize.y * 0.5f + topBarHeight), ImGuiCond_Always);
         ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x * 0.2f, ImGui::GetIO().DisplaySize.y * 0.5f), ImGuiCond_Always);
         ImGui::Begin("Hierarchy");
+
+        // Display all GameObjects in the hierarchy list
         for (int i = 0; i < gameObjects.size(); ++i) {
             if (ImGui::Selectable(gameObjects[i].name.c_str(), selectedGameObjectIndex == i)) {
                 selectedGameObjectIndex = i;

@@ -5,34 +5,8 @@
 #include <vector>
 #include <chrono>
 #include "../MyGameEngine/MyWindow.h"
+#include "../MyGameEngine/GameObject.h"  // Include GameObject header
 #include <string>
-
-
-struct ImVec3 {
-    float x, y, z;
-    ImVec3() : x(0.0f), y(0.0f), z(0.0f) {}
-    ImVec3(float x, float y, float z) : x(x), y(y), z(z) {}
-};
-
-struct GameObject {
-    std::string name;
-    ImVec3 position;
-    ImVec3 rotation;
-    ImVec3 scale;
-    bool hasMesh;
-    bool displayTriangleNormals;
-    bool displayFaceNormals;
-    bool hasTexture;
-    std::string texturePath;
-    int textureWidth;
-    int textureHeight;
-    bool useCheckerTexture;
-
-    GameObject(const std::string& name)
-        : name(name), position(0, 0, 0), rotation(0, 0, 0), scale(1, 1, 1),
-        hasMesh(false), displayTriangleNormals(false), displayFaceNormals(false),
-        hasTexture(false), textureWidth(0), textureHeight(0), useCheckerTexture(false) {}
-};
 
 class MyGUI : public IEventProcessor
 {
