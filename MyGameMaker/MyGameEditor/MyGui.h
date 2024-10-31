@@ -9,6 +9,7 @@
 #include <string>
 #include <deque> // Agregar al inicio del archivo
 
+
 class MyGUI : public IEventProcessor
 {
 public:
@@ -23,6 +24,9 @@ public:
     void render();
     void processEvent(const SDL_Event& event) override;
     void addConsoleMessage(const std::string& message);
+
+    std::vector<GameObject> gameObjects;  // List of all GameObjects
+    int selectedGameObjectIndex;          // Index of the selected GameObject
 
 private:
     void updateFPS();
@@ -54,7 +58,6 @@ private:
     } textureConfig;
 
     // GameObject management
-    std::vector<GameObject> gameObjects;  // List of all GameObjects
-    int selectedGameObjectIndex;          // Index of the selected GameObject
+    
     std::deque<std::string> consoleMessages; // Buffer para mensajes de consola
 };

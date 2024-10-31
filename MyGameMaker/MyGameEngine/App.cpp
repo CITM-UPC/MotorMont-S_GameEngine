@@ -2,6 +2,7 @@
 #include "MyWindow.h"
 #include <iostream>
 #include <GL/glew.h>
+#include "../MyGameEditor/MyGui.h"
 
 void App::Run() {
     bool running = true;
@@ -14,6 +15,9 @@ void App::Run() {
         window->swapBuffers();
     }
 }
+
+
+
 
 void App::CleanUp() {
     delete window;

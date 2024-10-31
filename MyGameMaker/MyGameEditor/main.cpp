@@ -19,6 +19,9 @@
 #include "MyGameEngine/Image.h"
 #include "MyGUI.h" // Include your GUI header
 #include <sstream> // Para formatear el mensaje
+#include "../MyGameEngine/App.h"
+#include "../MyGameEngine/GameObject.h"
+
 
 using namespace std;
 
@@ -211,7 +214,15 @@ void handleInput(SDL_Event& event) {
             glViewport(0, 0, width, height);
             camera.aspect = static_cast<double>(width) / height;
         }
+
+
         break;
+
+        case SDL_DROPFILE:
+          
+
+        break;
+
     default:
         break;
     }
@@ -266,19 +277,24 @@ int main(int argc, char* argv[]) {
     camera.transform().pos() = glm::vec3(0, 1, 4);
     camera.transform().rotate(glm::radians(180.0), glm::vec3(0, 1, 0));
 
+    gui = new MyGUI(window, glContext); // Create your GUI instance
+    gui->initialize(); // Call initialize if your GUI has one
     Mesh mesh;
     if (mesh.loadFromFile("Assets/BakerHouse/BakerHouse.fbx")) {
         auto& mesh_object = scene.emplaceChild();
         mesh_object.setMesh(std::make_shared<Mesh>(std::move(mesh)));
         mesh_object.setTextureImage(image);
+        GameObject gameobject("sergiguei:)");
+       // gameobject.setMesh(&mesh);
+        gui->gameObjects.push_back(gameobject);
+
     }
     else {
         std::cerr << "Failed to load BakerHouse model" << std::endl;
     }
 
     // Initialize GUI here
-    gui = new MyGUI(window, glContext); // Create your GUI instance
-    gui->initialize(); // Call initialize if your GUI has one
+   
 
     bool running = true;
     while (running) {

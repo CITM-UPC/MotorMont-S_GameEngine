@@ -1,11 +1,12 @@
 #pragma once
-
+#include "../MyGameEditor/MyGui.h"
 #include "MyWindow.h"
 #include "Mesh.h"
 
 class App {
     MyWindow* window;
     Mesh model;
+    
 
 public:
     App();
@@ -14,4 +15,6 @@ public:
     bool Init();
     void Run();
     void CleanUp();
+    MyGUI mygui;
+
 };

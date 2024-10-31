@@ -7,6 +7,9 @@ class GameObject
 public:
     GameObject(const std::string& name = "Unnamed GameObject"); // Constructor with default name
 
+    
+
+
     // GameObject name
     std::string name;
 
@@ -36,4 +39,5 @@ public:
     void setScale(float x, float y, float z);
     void setTexture(const std::string& path, int width, int height);
     void toggleMeshNormals(bool triangleNormals, bool faceNormals);
+    
 };

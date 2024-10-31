@@ -198,7 +198,9 @@ void MyGUI::render() {
         ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x * 0.2f, screenHeight * 0.25f * 1.6f), ImGuiCond_Always);
         ImGui::Begin("Hierarchy");
 
+
         for (int i = 0; i < gameObjects.size(); ++i) {
+
             if (ImGui::Selectable(gameObjects[i].name.c_str(), selectedGameObjectIndex == i)) {
                 selectedGameObjectIndex = i;
             }
