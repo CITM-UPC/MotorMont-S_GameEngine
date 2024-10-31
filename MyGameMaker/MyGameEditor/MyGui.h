@@ -7,6 +7,7 @@
 #include "../MyGameEngine/MyWindow.h"
 #include "../MyGameEngine/GameObject.h"  // Include GameObject header
 #include <string>
+#include <deque> // Agregar al inicio del archivo
 
 class MyGUI : public IEventProcessor
 {
@@ -21,6 +22,7 @@ public:
     void shutdown();
     void render();
     void processEvent(const SDL_Event& event) override;
+    void addConsoleMessage(const std::string& message); // Método para añadir mensajes
 
 private:
     void updateFPS();
@@ -51,4 +53,5 @@ private:
     // GameObject management
     std::vector<GameObject> gameObjects;  // List of all GameObjects
     int selectedGameObjectIndex;          // Index of the selected GameObject
+    std::deque<std::string> consoleMessages; // Buffer para mensajes de consola
 };

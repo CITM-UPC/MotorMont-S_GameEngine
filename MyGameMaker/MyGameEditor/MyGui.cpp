@@ -74,6 +74,14 @@ void MyGUI::updateFPS() {
     last_time = current_time;
 }
 
+void MyGUI::addConsoleMessage(const std::string& message) {
+    if (consoleMessages.size() > 100) { // Limitar el número de mensajes
+        consoleMessages.pop_front();
+    }
+    consoleMessages.push_back(message);
+}
+
+
 void MyGUI::render() {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL2_NewFrame();
@@ -127,11 +135,15 @@ void MyGUI::render() {
 
     float topBarHeight = ImGui::GetFrameHeight();
 
+
+
     if (showConsole) {
         ImGui::SetNextWindowPos(ImVec2(0, ImGui::GetIO().DisplaySize.y * 0.75f + topBarHeight), ImGuiCond_Always);
         ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x * 0.2f, ImGui::GetIO().DisplaySize.y * 0.25f), ImGuiCond_Always);
         ImGui::Begin("Console");
-        ImGui::Text("Console output goes here...");
+        for (const auto& msg : consoleMessages) {
+            ImGui::TextUnformatted(msg.c_str());
+        }
         ImGui::End();
     }
 

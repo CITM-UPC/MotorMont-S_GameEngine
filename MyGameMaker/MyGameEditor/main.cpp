@@ -18,6 +18,7 @@
 #include "MyGameEngine/GraphicObject.h"
 #include "MyGameEngine/Image.h"
 #include "MyGUI.h" // Include your GUI header
+#include <sstream> // Para formatear el mensaje
 
 using namespace std;
 
@@ -150,8 +151,11 @@ void handleInput(SDL_Event& event) {
             glm::vec3 rayDirection = screenToWorldRay(mouseX, mouseY, 1280, 720, camera);
             glm::vec3 rayOrigin = camera.transform().pos();
 
-            std::cout << "Ray casted from: " << rayOrigin.x << ", " << rayOrigin.y << ", " << rayOrigin.z << " in direction: "
-                << rayDirection.x << ", " << rayDirection.y << ", " << rayDirection.z << std::endl;
+            // Formatea el mensaje y añade a la consola de la GUI
+            std::stringstream message;
+            message << "Ray casted from: " << rayOrigin.x << ", " << rayOrigin.y << ", " << rayOrigin.z
+                << " in direction: " << rayDirection.x << ", " << rayDirection.y << ", " << rayDirection.z;
+            gui->addConsoleMessage(message.str());
         }
         updateMovement();
         break;
