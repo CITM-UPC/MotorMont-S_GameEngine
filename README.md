@@ -31,5 +31,7 @@ respective checker box. Minimal UI has been implemented.
 - Quit app
 - Display only Transform and Mesh&Texture information
 
-
+### NOTES
+- Delivery is in release, not debug. When we changed to debug, 24 external errors appeared and it wasn't fixed switching C++ versions
+- Loading Meshes and Textures theoretically works, the message is displayed in the console and the number of meshes goes up, however it's not appearing in the scene
 
