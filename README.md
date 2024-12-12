@@ -23,6 +23,7 @@ respective checker box. Minimal UI has been implemented.
 - Focus on Selected Object: F key (not implemented yet)
 - Orbit Around Selected Object: Alt Key + Left Click (not implemented yet)
 - Move twice as fast: Shift Key
+- Frustum added and working
 
 ### UI control
 - Menu bar in the top section of the window with "options"
@@ -30,6 +31,12 @@ respective checker box. Minimal UI has been implemented.
 - Link to our GitHub
 - Quit app
 - Display only Transform and Mesh&Texture information
+- Load and save scene option
+- Hierarchy with parenting
+- Delete: select an object in the hierarchy and press supr
+- Parent an object by dragging another to it in the hierarchy
+- View option to change between console and assets folder
+- Mesh option to create different shapes
 
 ### NOTES
 - Delivery is in release, not debug. When we changed to debug, 24 external errors appeared and it wasn't fixed switching C++ versions
